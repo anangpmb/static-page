@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support the Stream - QRIS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            /* Tekstur semen ekspos halus */
+            background-image: url('https://www.transparenttextures.com/patterns/concrete-wall.png');
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .brutalist-card {
+            background-color: #e5e5e5;
+            border: 4px solid #000;
+            box-shadow: 12px 12px 0px 0px #000;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-6">
+
+    <div class="max-w-sm w-full brutalist-card p-8 text-center">
+        <!-- Header -->
+        <h1 class="text-3xl font-black uppercase tracking-tighter text-black mb-2">
+            Nayanika Ossan
+        </h1>
+        <p class="text-xs font-bold text-gray-600 mb-6 border-b-2 border-black pb-2 uppercase">
+            Support the stream / Mediashare
+        </p>
+
+        <!-- QR Code Container -->
+        <div class="bg-white border-2 border-black p-4 mb-6 inline-block">
+            <!-- GANTI 'qris-dana.png' dengan path file QRIS DANA Bisnis kamu -->
+            <img src="qris-dana.jpg" alt="QRIS DANA" class="w-64 h-64 mx-auto grayscale hover:grayscale-0 transition-all duration-300">
+        </div>
+
+        <!-- Instructions -->
+        <div class="text-left text-sm space-y-3 mb-6">
+            <p class="font-bold uppercase tracking-widest text-xs border-l-4 border-black pl-2">
+                Langkah Pembayaran:
+            </p>
+            <ol class="list-decimal list-inside font-medium text-gray-800">
+                <li>Buka aplikasi DANA / m-Banking</li>
+                <li>Scan QRIS di atas</li>
+                <li>Masukkan nominal seikhlasnya</li>
+                <li>Selesai! Videomu akan segera diputar</li>
+            </ol>
+        </div>
+
+        <!-- Button Back / Status -->
+        <div class="mt-8">
+            <p class="text-[10px] font-bold text-gray-500 uppercase mb-4 italic">
+                *Pembayaran diproses otomatis melalui sistem mediashare
+            </p>
+            <a href="https://forms.gle/JwiiwPijVRJ151219" class="inline-block w-full bg-black text-white font-bold py-3 px-6 hover:bg-gray-800 transition-colors uppercase tracking-widest">
+                Kirim Request Lagi
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>

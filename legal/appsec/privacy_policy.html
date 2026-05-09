@@ -117,7 +117,7 @@
 </header>
 
 <div class="callout">
-  <p><strong>Summary:</strong> AccSec stores all of your data locally on your device using strong encryption. We do not run servers that hold your passwords, we do not have accounts, and we do not collect personal information. The only network traffic the app may produce is for advertisements (which you can disable at any time) and for biometric/system services provided by your device&apos;s operating system.</p>
+  <p><strong>Summary:</strong> AccSec stores all of your data locally on your device using strong encryption. We do not run servers that hold your passwords, we do not have accounts, and we do not collect personal information. The only network traffic the app may produce is for advertisements and for biometric/system services provided by your device&apos;s operating system.</p>
 </div>
 
 <h2>1. Who we are</h2>
@@ -153,17 +153,16 @@
     </tr>
     <tr>
       <td><code>INTERNET</code> / <code>ACCESS_NETWORK_STATE</code></td>
-      <td>Used only when in-app advertisements are enabled, so the AdMob SDK can request and display ads. If you disable ads, the app makes no network requests during normal operation.</td>
+      <td>Used only when in-app advertisements are enabled, so the AdMob SDK can request and display ads.</td>
     </tr>
   </tbody>
 </table>
 
 <h2>5. Advertising (Google AdMob)</h2>
-<p>AccSec includes optional banner advertisements served by <strong>Google AdMob</strong>. When ads are enabled:</p>
+<p>AccSec includes banner advertisements served by <strong>Google AdMob</strong>. When ads are enabled:</p>
 <ul>
   <li>The Google Mobile Ads SDK may collect a limited set of device-level signals (such as your device&apos;s advertising identifier, coarse location derived from IP, device model, and language) to deliver and measure ads. This data is processed by Google under Google&apos;s own privacy terms.</li>
   <li>The first time the SDK loads, Android may show you a User Messaging Platform (UMP) consent prompt where required by law (for example, in the European Economic Area and the United Kingdom). You can change your consent at any time through your device&apos;s ad settings.</li>
-  <li>You can <strong>disable advertisements completely</strong> from <em>Settings &rarr; Advertisements &rarr; Show advertisements</em> inside the app. When ads are disabled, the AdMob SDK is not initialised and no ad-related network requests are made.</li>
 </ul>
 <p>Google&apos;s privacy policy is available at <a href="https://policies.google.com/privacy">https://policies.google.com/privacy</a>. Information specific to AdMob is available at <a href="https://support.google.com/admob/answer/6128543">https://support.google.com/admob/answer/6128543</a>.</p>
 

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy &mdash; AccSec Password Manager</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f7f8fb;
+    --text: #1f2733;
+    --text-muted: #5b6472;
+    --primary: #1B2A4E;
+    --accent: #4ECDC4;
+    --border: #e2e6ee;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1420;
+      --surface: #1a2030;
+      --text: #e7eaf0;
+      --text-muted: #9aa3b2;
+      --primary: #6F8AC8;
+      --accent: #4ECDC4;
+      --border: #2a3142;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    font-size: 16px;
+  }
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+  header {
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 20px;
+    margin-bottom: 32px;
+  }
+  h1 {
+    font-size: 32px;
+    margin: 0 0 8px;
+    color: var(--primary);
+    letter-spacing: -0.5px;
+  }
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin: 0;
+  }
+  h2 {
+    font-size: 22px;
+    margin: 36px 0 12px;
+    color: var(--primary);
+    letter-spacing: -0.3px;
+  }
+  h3 {
+    font-size: 17px;
+    margin: 24px 0 8px;
+    color: var(--text);
+  }
+  p { margin: 0 0 14px; }
+  ul {
+    margin: 8px 0 16px;
+    padding-left: 24px;
+  }
+  li { margin-bottom: 6px; }
+  strong { color: var(--text); font-weight: 600; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .callout {
+    background: var(--surface);
+    border-left: 4px solid var(--accent);
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+  }
+  .callout strong { color: var(--accent); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+  }
+  th {
+    background: var(--surface);
+    font-weight: 600;
+  }
+  footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>Privacy Policy</h1>
+  <p class="subtitle">AccSec &mdash; Offline Password Manager &middot; Last updated: May 8, 2026</p>
+</header>
+
+<div class="callout">
+  <p><strong>Summary:</strong> AccSec stores all of your data locally on your device using strong encryption. We do not run servers that hold your passwords, we do not have accounts, and we do not collect personal information. The only network traffic the app may produce is for advertisements (which you can disable at any time) and for biometric/system services provided by your device&apos;s operating system.</p>
+</div>
+
+<h2>1. Who we are</h2>
+<p>This Privacy Policy describes how the AccSec mobile application (&ldquo;<strong>AccSec</strong>&rdquo;, &ldquo;<strong>the app</strong>&rdquo;, &ldquo;<strong>we</strong>&rdquo;, &ldquo;<strong>us</strong>&rdquo;) handles information in connection with your use of the app. AccSec is distributed under the application identifier <code>com.accsec.app</code>.</p>
+
+<h2>2. The data you store in the app</h2>
+<p>AccSec is an <strong>offline-first password manager</strong>. The credentials and notes you enter (titles, usernames, passwords, websites, notes, two-factor secrets, categories) are:</p>
+<ul>
+  <li>Encrypted on your device with <strong>AES-256-CBC</strong>, using a key derived from your master password via <strong>PBKDF2-SHA256</strong> with 100,000 iterations and a random per-installation salt.</li>
+  <li>Stored exclusively in encrypted form within your device&apos;s local storage (Android <em>SharedPreferences</em> for the encrypted blob; the master-password salt and verification hash live in the platform secure keystore &mdash; Android Keystore or iOS Keychain).</li>
+  <li><strong>Never transmitted</strong> off your device by us. AccSec does not operate servers that receive, sync, back up, or process your vault contents.</li>
+</ul>
+<p>Because we never receive your data, we cannot read it, recover it, share it, or sell it. The flip side is that <strong>if you forget your master password, your vault cannot be recovered</strong>. There is no backdoor and no &ldquo;forgot password&rdquo; flow.</p>
+
+<h2>3. Information we do not collect</h2>
+<p>AccSec does not collect, transmit, or store on any remote server:</p>
+<ul>
+  <li>Your name, email address, phone number, or any account identifiers.</li>
+  <li>The contents of your vault (titles, usernames, passwords, notes, TOTP secrets, etc.).</li>
+  <li>Your master password, or any value derived from it that could be used to authenticate as you.</li>
+  <li>Behavioural analytics, click-tracking, screen recordings, crash reports tied to your identity, or first-party telemetry.</li>
+</ul>
+
+<h2>4. Permissions used by the app</h2>
+<table>
+  <thead>
+    <tr><th>Permission</th><th>Purpose</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>USE_BIOMETRIC</code> / <code>USE_FINGERPRINT</code></td>
+      <td>Optional. Lets you unlock the app with a fingerprint or face scan instead of typing your master password every time. Biometric matching is performed by your device&apos;s operating system; AccSec never receives your biometric data.</td>
+    </tr>
+    <tr>
+      <td><code>INTERNET</code> / <code>ACCESS_NETWORK_STATE</code></td>
+      <td>Used only when in-app advertisements are enabled, so the AdMob SDK can request and display ads. If you disable ads, the app makes no network requests during normal operation.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>5. Advertising (Google AdMob)</h2>
+<p>AccSec includes optional banner advertisements served by <strong>Google AdMob</strong>. When ads are enabled:</p>
+<ul>
+  <li>The Google Mobile Ads SDK may collect a limited set of device-level signals (such as your device&apos;s advertising identifier, coarse location derived from IP, device model, and language) to deliver and measure ads. This data is processed by Google under Google&apos;s own privacy terms.</li>
+  <li>The first time the SDK loads, Android may show you a User Messaging Platform (UMP) consent prompt where required by law (for example, in the European Economic Area and the United Kingdom). You can change your consent at any time through your device&apos;s ad settings.</li>
+  <li>You can <strong>disable advertisements completely</strong> from <em>Settings &rarr; Advertisements &rarr; Show advertisements</em> inside the app. When ads are disabled, the AdMob SDK is not initialised and no ad-related network requests are made.</li>
+</ul>
+<p>Google&apos;s privacy policy is available at <a href="https://policies.google.com/privacy">https://policies.google.com/privacy</a>. Information specific to AdMob is available at <a href="https://support.google.com/admob/answer/6128543">https://support.google.com/admob/answer/6128543</a>.</p>
+
+<h2>6. Security</h2>
+<p>We have designed AccSec to minimise the trust you have to place in us:</p>
+<ul>
+  <li><strong>No server-side storage</strong> means there is no database for an attacker to breach.</li>
+  <li><strong>Master password is never stored</strong>. We persist only a salted hash, derived through PBKDF2 with a high iteration count, used solely to verify that you typed the correct password locally.</li>
+  <li><strong>Encryption keys live only in memory</strong> for the duration of an unlocked session. They are zeroed out and released when you lock the app, when the configured auto-lock timer fires, or when the operating system terminates the process.</li>
+  <li><strong>Biometric unlock</strong> is gated by the operating system&apos;s biometric stack; the app simply asks the OS &ldquo;is this the rightful user?&rdquo; and unlocks if the OS confirms.</li>
+</ul>
+<p>No method of electronic storage is 100% secure. If you suspect your device is compromised (for example, lost, stolen, or rooted), we recommend that you change the master passwords stored in your vault and rotate any credentials you consider sensitive.</p>
+
+<h2>7. Children&apos;s privacy</h2>
+<p>AccSec is not directed at children under 13 (or the equivalent minimum age in your jurisdiction). We do not knowingly collect personal information from children. Because we collect no personal information from any user, this restriction is technical as well as legal.</p>
+
+<h2>8. International users</h2>
+<p>Because AccSec is offline and we do not collect personal data, no international transfer of personal data takes place under our control. Where ads are enabled, Google may transfer ad-related data internationally as described in Google&apos;s own privacy policy.</p>
+
+<h2>9. Your choices and rights</h2>
+<ul>
+  <li><strong>Disable ads:</strong> <em>Settings &rarr; Advertisements</em> inside the app.</li>
+  <li><strong>Delete your data:</strong> uninstalling the app will remove all locally stored vault data, settings, and keystore entries written by the app on Android. On iOS, locally stored data is removed on uninstall; some keychain entries may persist depending on your operating system version &mdash; you can delete them from the iOS keychain settings if needed.</li>
+  <li><strong>Export your data:</strong> a future release may add an encrypted export feature. Until then, treat the data inside AccSec as device-local only.</li>
+</ul>
+
+<h2>10. Changes to this policy</h2>
+<p>We may update this Privacy Policy from time to time. When we do, we will update the &ldquo;Last updated&rdquo; date at the top of this page. If a change is material, we will surface a notice inside the app. Continued use of AccSec after a change constitutes acceptance of the revised policy.</p>
+
+<h2>11. Contact</h2>
+<p>Questions about this policy or how AccSec handles your data? Reach the developer through the support channel listed on the app&apos;s Google Play store page.</p>
+
+<footer>
+  &copy; 2026 AccSec. This policy applies to the AccSec mobile application only.
+</footer>
+
+</div>
+</body>
+</html>

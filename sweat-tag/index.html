@@ -387,6 +387,15 @@
   }
 
   [hidden]{ display:none !important; }
+
+  .share-actions{
+    padding:16px 0 4px;
+    text-align:center;
+  }
+  #shareImgBtn{
+    font-size:13px;
+    letter-spacing:.08em;
+  }
 </style>
 </head>
 <body>
@@ -473,6 +482,14 @@
       </div>
     </div>
 
+    <!-- SHARE BUTTON -->
+    <div id="shareWrap" hidden>
+      <hr class="dash">
+      <div class="share-actions">
+        <button class="btn" id="shareImgBtn" type="button">Simpan sebagai Gambar</button>
+      </div>
+    </div>
+
     <div class="torn"></div>
   </main>
 
@@ -485,6 +502,7 @@
 
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -541,7 +559,8 @@
     "priceInput","priceError","calcBtn",
     "resultWrap","result","effortValue","effortSub","effortPercent",
     "stamp","stampText","insightText",
-    "metaDate","metaCount","footCount","resetBtn"
+    "metaDate","metaCount","footCount","resetBtn",
+    "shareWrap","shareImgBtn"
   ].forEach(function(id){ el[id] = document.getElementById(id); });
 
   var currentType = "monthly";
@@ -618,6 +637,7 @@
     el.salarySummarySection.hidden = true;
     el.salaryFormSection.hidden = false;
     el.resultWrap.hidden = true;
+    el.shareWrap.hidden = true;
     el.result.classList.remove("show");
     el.resetBtn.hidden = !prefill;
     if (prefill){
@@ -674,6 +694,7 @@
     localStorage.removeItem(STORAGE_KEY);
     refreshSalaryUI();
     el.resultWrap.hidden = true;
+    el.shareWrap.hidden = true;
     el.result.classList.remove("show");
   });
 
@@ -735,6 +756,7 @@
     el.insightText.textContent = msg;
 
     el.resultWrap.hidden = false;
+    el.shareWrap.hidden = false;
     el.result.classList.remove("show");
     void el.result.offsetWidth; // restart animation
     el.result.classList.add("show");
@@ -745,6 +767,39 @@
   }
 
   el.calcBtn.addEventListener("click", runCalculation);
+
+  // ---------- share as image ----------
+  el.shareImgBtn.addEventListener("click", function(){
+    var receipt = document.querySelector(".receipt");
+    if (!receipt || typeof html2canvas === "undefined") return;
+
+    el.shareImgBtn.textContent = "Membuat gambar...";
+    el.shareImgBtn.disabled = true;
+
+    html2canvas(receipt, {
+      backgroundColor: "#FBF8F1",
+      scale: 2,
+      useCORS: true,
+      logging: false
+    }).then(function(canvas){
+      var link = document.createElement("a");
+      var date = new Date().toISOString().slice(0,10);
+      link.download = "worth-it-" + date + ".png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      el.shareImgBtn.textContent = "Tersimpan!";
+      setTimeout(function(){
+        el.shareImgBtn.textContent = "Simpan sebagai Gambar";
+        el.shareImgBtn.disabled = false;
+      }, 2000);
+    }).catch(function(){
+      el.shareImgBtn.textContent = "Gagal, coba lagi";
+      el.shareImgBtn.disabled = false;
+      setTimeout(function(){
+        el.shareImgBtn.textContent = "Simpan sebagai Gambar";
+      }, 2000);
+    });
+  });
 
   [el.salaryInput, el.priceInput].forEach(function(input){
     input.addEventListener("keydown", function(e){

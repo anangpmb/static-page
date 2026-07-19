@@ -1,840 +1,954 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#E4DDC9">
-<title>Worth It? — Struk Effort Kerja</title>
-<meta name="description" content="Hitung berapa lama kamu harus kerja buat beli sesuatu, lalu dapetin vonis: worth it, masih aman, atau miskin memaksakan diri.">
-<style>
-  :root{
-    --paper-bg:#E4DDC9;
-    --paper-bg-2:#DAD2BA;
-    --receipt-bg:#FBF8F1;
-    --ink:#2A2723;
-    --ink-soft:#726C5E;
-    --ink-faint:#A39C89;
-    --line:rgba(42,39,35,0.28);
-    --stamp-1:#3C6E52;
-    --stamp-2:#4C7A3A;
-    --stamp-3:#96631B;
-    --stamp-4:#8A4118;
-    --stamp-5:#9C2B2B;
-    --error:#9C2B2B;
-    --radius:10px;
-    --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Courier New", Courier, monospace;
-    --stamp-font: Impact, "Arial Narrow Bold", "Haettenschweiler", sans-serif;
-  }
-
-  *{ box-sizing:border-box; }
-
-  html{ -webkit-text-size-adjust:100%; }
-
-  body{
-    margin:0;
-    min-height:100vh;
-    background:
-      radial-gradient(ellipse at top, var(--paper-bg-2), var(--paper-bg) 60%);
-    color:var(--ink);
-    font-family:var(--mono);
-    display:flex;
-    justify-content:center;
-    padding: clamp(16px, 5vw, 48px) 16px 64px;
-  }
-
-  .page{
-    width:100%;
-    max-width:440px;
-  }
-
-  .brand{
-    text-align:center;
-    margin-bottom:18px;
-  }
-  .brand .eyebrow{
-    display:inline-block;
-    font-size:11px;
-    letter-spacing:.18em;
-    color:var(--ink-soft);
-    text-transform:uppercase;
-  }
-  .brand h1{
-    margin:4px 0 0;
-    font-size:clamp(26px,7vw,32px);
-    letter-spacing:.02em;
-    font-weight:700;
-  }
-  .brand p{
-    margin:6px 0 0;
-    font-size:12.5px;
-    color:var(--ink-soft);
-  }
-
-  .receipt{
-    background:var(--receipt-bg);
-    border-radius:var(--radius) var(--radius) 0 0;
-    box-shadow: 0 18px 40px -18px rgba(42,39,35,0.45), 0 2px 0 rgba(42,39,35,0.05);
-    padding: 24px 22px 0;
-    position:relative;
-  }
-
-  .torn{
-    height:16px;
-    background-image:
-      linear-gradient(-45deg, var(--paper-bg) 8px, transparent 0),
-      linear-gradient(45deg, var(--paper-bg) 8px, transparent 0);
-    background-size:16px 16px;
-    background-repeat:repeat-x;
-    background-position:left bottom;
-    background-color:var(--receipt-bg);
-    margin-top:14px;
-  }
-
-  .r-header{
-    text-align:center;
-    padding-bottom:14px;
-  }
-  .r-header .r-title{
-    font-weight:700;
-    font-size:18px;
-    letter-spacing:.06em;
-  }
-  .r-header .r-sub{
-    font-size:11px;
-    color:var(--ink-soft);
-    margin-top:4px;
-  }
-  .r-meta{
-    display:flex;
-    justify-content:space-between;
-    font-size:10.5px;
-    color:var(--ink-faint);
-    margin-top:10px;
-  }
-
-  .dash{
-    border:none;
-    border-top:1.5px dashed var(--line);
-    margin:0;
-  }
-
-  .section{
-    padding:16px 0;
-  }
-  .section-label{
-    font-size:11px;
-    letter-spacing:.12em;
-    color:var(--ink-soft);
-    text-transform:uppercase;
-    margin-bottom:10px;
-    display:block;
-  }
-
-  .segmented{
-    display:flex;
-    gap:6px;
-    margin-bottom:12px;
-  }
-  .seg-btn{
-    flex:1;
-    font-family:var(--mono);
-    font-size:12px;
-    letter-spacing:.03em;
-    padding:9px 4px;
-    border:1.5px solid var(--ink);
-    background:transparent;
-    color:var(--ink);
-    border-radius:6px;
-    cursor:pointer;
-    -webkit-tap-highlight-color:transparent;
-  }
-  .seg-btn.active{
-    background:var(--ink);
-    color:var(--receipt-bg);
-  }
-  .seg-btn:focus-visible{
-    outline:2px solid var(--stamp-1);
-    outline-offset:2px;
-  }
-
-  .field{
-    position:relative;
-    margin-bottom:12px;
-  }
-  .field .prefix{
-    position:absolute;
-    left:0;
-    bottom:9px;
-    font-size:15px;
-    color:var(--ink-soft);
-  }
-  .field input{
-    width:100%;
-    font-family:var(--mono);
-    font-size:17px;
-    font-weight:700;
-    color:var(--ink);
-    background:transparent;
-    border:none;
-    border-bottom:1.5px dotted var(--line);
-    padding:6px 0 8px 30px;
-    outline:none;
-  }
-  .field input::placeholder{
-    color:var(--ink-faint);
-    font-weight:400;
-  }
-  .field input:focus-visible,
-  .field input:focus{
-    border-bottom:1.5px solid var(--ink);
-  }
-
-  .btn{
-    display:block;
-    width:100%;
-    font-family:var(--mono);
-    font-size:13px;
-    font-weight:700;
-    letter-spacing:.1em;
-    text-transform:uppercase;
-    padding:13px 10px;
-    border-radius:6px;
-    border:1.5px solid var(--ink);
-    background:var(--ink);
-    color:var(--receipt-bg);
-    cursor:pointer;
-    min-height:44px;
-    -webkit-tap-highlight-color:transparent;
-  }
-  .btn:active{ transform:translateY(1px); }
-  .btn:focus-visible{
-    outline:2px solid var(--stamp-1);
-    outline-offset:2px;
-  }
-  .btn-ghost{
-    background:transparent;
-    color:var(--ink);
-  }
-
-  .error-msg{
-    font-size:11.5px;
-    color:var(--error);
-    margin:-6px 0 10px;
-    min-height:14px;
-  }
-
-  .salary-summary{
-    display:none;
-    align-items:baseline;
-    justify-content:space-between;
-    gap:10px;
-    font-size:13px;
-  }
-  .salary-summary .lbl{
-    color:var(--ink-soft);
-    letter-spacing:.04em;
-  }
-  .salary-summary .amt{
-    font-weight:700;
-    white-space:nowrap;
-  }
-  .salary-summary .edit-link{
-    background:none;
-    border:none;
-    font-family:var(--mono);
-    font-size:11px;
-    text-decoration:underline;
-    color:var(--ink-soft);
-    cursor:pointer;
-    padding:2px;
-    margin-left:8px;
-  }
-  .leader-row{
-    display:flex;
-    align-items:baseline;
-    gap:6px;
-    width:100%;
-  }
-  .leader-row .lbl{ flex-shrink:0; }
-  .leader-row .fill{
-    flex:1;
-    border-bottom:1px dotted var(--line);
-    margin-bottom:3px;
-  }
-
-  .result{
-    padding-top:4px;
-    overflow:hidden;
-    max-height:0;
-    opacity:0;
-  }
-  .result.show{
-    max-height:900px;
-    opacity:1;
-  }
-  @media (prefers-reduced-motion:no-preference){
-    .result.show{
-      animation: printOut .5s ease-out;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#E4DDC9">
+  <title>Worth It? — Struk Effort Kerja</title>
+  <meta name="description"
+    content="Hitung berapa lama kamu harus kerja buat beli sesuatu, lalu dapetin vonis: worth it, masih aman, atau miskin memaksakan diri.">
+  <style>
+    :root {
+      --paper-bg: #E4DDC9;
+      --paper-bg-2: #DAD2BA;
+      --receipt-bg: #FBF8F1;
+      --ink: #0a0a09;
+      --ink-soft: #726C5E;
+      --ink-faint: #A39C89;
+      --line: rgba(42, 39, 35, 0.28);
+      --stamp-1: #3C6E52;
+      --stamp-2: #4C7A3A;
+      --stamp-3: #96631B;
+      --stamp-4: #8A4118;
+      --stamp-5: #9C2B2B;
+      --error: #9C2B2B;
+      --radius: 10px;
+      --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Courier New", Courier, monospace;
+      --stamp-font: Impact, "Arial Narrow Bold", "Haettenschweiler", sans-serif;
     }
-  }
-  @keyframes printOut{
-    from{ transform:translateY(-14px); opacity:0; }
-    to{ transform:translateY(0); opacity:1; }
-  }
 
-  .effort-label{
-    font-size:11px;
-    letter-spacing:.12em;
-    color:var(--ink-soft);
-    text-transform:uppercase;
-    text-align:center;
-  }
-  .effort-value{
-    text-align:center;
-    font-size:clamp(26px,8vw,34px);
-    font-weight:700;
-    letter-spacing:.01em;
-    margin:6px 0 2px;
-  }
-  .effort-sub{
-    text-align:center;
-    font-size:11.5px;
-    color:var(--ink-soft);
-    margin-bottom:4px;
-  }
-  .effort-percent{
-    text-align:center;
-    font-size:11px;
-    color:var(--ink-faint);
-    margin-bottom:18px;
-  }
-
-  .stamp-wrap{
-    display:flex;
-    justify-content:center;
-    padding:6px 0 18px;
-  }
-  .stamp{
-    display:inline-block;
-    border:3px solid currentColor;
-    border-radius:8px;
-    padding:10px 18px;
-    transform:rotate(-6deg);
-    text-align:center;
-    position:relative;
-  }
-  .stamp::before{
-    content:"";
-    position:absolute;
-    inset:4px;
-    border:1px solid currentColor;
-    border-radius:5px;
-    opacity:.55;
-  }
-  .stamp .stamp-text{
-    font-family:var(--stamp-font);
-    font-size:clamp(17px,5.4vw,21px);
-    letter-spacing:.05em;
-    text-transform:uppercase;
-    line-height:1.15;
-    display:block;
-  }
-  @media (prefers-reduced-motion:no-preference){
-    .stamp{
-      animation: stampHit .42s cubic-bezier(.2,.9,.3,1.2);
+    * {
+      box-sizing: border-box;
     }
-  }
-  @keyframes stampHit{
-    0%{ transform:scale(2.2) rotate(-14deg); opacity:0; }
-    65%{ transform:scale(.92) rotate(-4deg); opacity:1; }
-    100%{ transform:scale(1) rotate(-6deg); opacity:1; }
-  }
 
-  .insight-text{
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size:14px;
-    line-height:1.55;
-    text-align:center;
-    color:var(--ink);
-    padding:0 4px 16px;
-  }
+    html {
+      -webkit-text-size-adjust: 100%;
+    }
 
-  .footnote{
-    font-size:10.5px;
-    color:var(--ink-faint);
-    text-align:center;
-    line-height:1.6;
-    padding:14px 0 20px;
-  }
-  .footnote .count{
-    display:block;
-    margin-top:4px;
-    letter-spacing:.05em;
-  }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse at top, var(--paper-bg-2), var(--paper-bg) 60%);
+      color: var(--ink);
+      font-family: var(--mono);
+      display: flex;
+      justify-content: center;
+      padding: clamp(16px, 5vw, 48px) 16px 64px;
+    }
 
-  .reset-link{
-    display:block;
-    text-align:center;
-    background:none;
-    border:none;
-    font-family:var(--mono);
-    font-size:10.5px;
-    color:var(--ink-faint);
-    text-decoration:underline;
-    cursor:pointer;
-    padding:6px 0 18px;
-    width:100%;
-  }
+    .page {
+      width: 100%;
+      max-width: 440px;
+    }
 
-  [hidden]{ display:none !important; }
+    .brand {
+      text-align: center;
+      margin-bottom: 18px;
+    }
 
-  .share-actions{
-    padding:16px 0 4px;
-    text-align:center;
-  }
-  #shareImgBtn{
-    font-size:13px;
-    letter-spacing:.08em;
-  }
-</style>
+    .brand .eyebrow {
+      display: inline-block;
+      font-size: 11px;
+      letter-spacing: .18em;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+    }
+
+    .brand h1 {
+      margin: 4px 0 0;
+      font-size: clamp(26px, 7vw, 32px);
+      letter-spacing: .02em;
+      font-weight: 700;
+    }
+
+    .brand p {
+      margin: 6px 0 0;
+      font-size: 12.5px;
+      color: var(--ink-soft);
+    }
+
+    .receipt {
+      background: var(--receipt-bg);
+      border-radius: var(--radius) var(--radius) 0 0;
+      box-shadow: 0 18px 40px -18px rgba(42, 39, 35, 0.45), 0 2px 0 rgba(42, 39, 35, 0.05);
+      padding: 24px 22px 0;
+      position: relative;
+    }
+
+    .torn {
+      height: 16px;
+      background-image:
+        linear-gradient(-45deg, var(--paper-bg) 8px, transparent 0),
+        linear-gradient(45deg, var(--paper-bg) 8px, transparent 0);
+      background-size: 16px 16px;
+      background-repeat: repeat-x;
+      background-position: left bottom;
+      background-color: var(--receipt-bg);
+      margin-top: 14px;
+    }
+
+    .r-header {
+      text-align: center;
+      padding-bottom: 14px;
+    }
+
+    .r-header .r-title {
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: .06em;
+    }
+
+    .r-header .r-sub {
+      font-size: 11px;
+      color: var(--ink-soft);
+      margin-top: 4px;
+    }
+
+    .r-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10.5px;
+      color: var(--ink-faint);
+      margin-top: 10px;
+    }
+
+    .dash {
+      border: none;
+      border-top: 1.5px dashed var(--line);
+      margin: 0;
+    }
+
+    .section {
+      padding: 16px 0;
+    }
+
+    .section-label {
+      font-size: 11px;
+      letter-spacing: .12em;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .segmented {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .seg-btn {
+      flex: 1;
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: .03em;
+      padding: 9px 4px;
+      border: 1.5px solid var(--ink);
+      background: transparent;
+      color: var(--ink);
+      border-radius: 6px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .seg-btn.active {
+      background: var(--ink);
+      color: var(--receipt-bg);
+    }
+
+    .seg-btn:focus-visible {
+      outline: 2px solid var(--stamp-1);
+      outline-offset: 2px;
+    }
+
+    .field {
+      position: relative;
+      margin-bottom: 12px;
+    }
+
+    .field .prefix {
+      position: absolute;
+      left: 0;
+      bottom: 9px;
+      font-size: 15px;
+      color: var(--ink-soft);
+    }
+
+    .field input {
+      width: 100%;
+      font-family: var(--mono);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--ink);
+      background: transparent;
+      border: none;
+      border-bottom: 1.5px dotted var(--line);
+      padding: 6px 0 8px 30px;
+      outline: none;
+    }
+
+    .field input::placeholder {
+      color: var(--ink-faint);
+      font-weight: 400;
+    }
+
+    .field input:focus-visible,
+    .field input:focus {
+      border-bottom: 1.5px solid var(--ink);
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: 13px 10px;
+      border-radius: 6px;
+      border: 1.5px solid var(--ink);
+      background: var(--ink);
+      color: var(--receipt-bg);
+      cursor: pointer;
+      min-height: 44px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--stamp-1);
+      outline-offset: 2px;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--ink);
+    }
+
+    .error-msg {
+      font-size: 11.5px;
+      color: var(--error);
+      margin: -6px 0 10px;
+      min-height: 14px;
+    }
+
+    .salary-summary {
+      display: none;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 13px;
+    }
+
+    .salary-summary .lbl {
+      color: var(--ink-soft);
+      letter-spacing: .04em;
+    }
+
+    .salary-summary .amt {
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .salary-summary .edit-link {
+      background: none;
+      border: none;
+      font-family: var(--mono);
+      font-size: 11px;
+      text-decoration: underline;
+      color: var(--ink-soft);
+      cursor: pointer;
+      padding: 2px;
+      margin-left: 8px;
+    }
+
+    .leader-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .leader-row .lbl {
+      flex-shrink: 0;
+    }
+
+    .leader-row .fill {
+      flex: 1;
+      border-bottom: 1px dotted var(--line);
+      margin-bottom: 3px;
+    }
+
+    .result {
+      padding-top: 4px;
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+    }
+
+    .result.show {
+      max-height: 900px;
+      opacity: 1;
+    }
+
+    @media (prefers-reduced-motion:no-preference) {
+      .result.show {
+        animation: printOut .5s ease-out;
+      }
+    }
+
+    @keyframes printOut {
+      from {
+        transform: translateY(-14px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .effort-label {
+      font-size: 11px;
+      letter-spacing: .12em;
+      color: var(--ink);
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .effort-value {
+      text-align: center;
+      font-size: clamp(26px, 8vw, 34px);
+      font-weight: 900;
+      letter-spacing: .01em;
+      margin: 6px 0 2px;
+      color: var(--ink);
+    }
+
+    .effort-sub {
+      text-align: center;
+      font-size: 11.5px;
+      color: var(--ink);
+      margin-bottom: 4px;
+      font-weight: 700;
+    }
+
+    .effort-percent {
+      text-align: center;
+      font-size: 11px;
+      color: var(--ink);
+      margin-bottom: 18px;
+      font-weight: 700;
+    }
+
+    .stamp-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 6px 0 18px;
+    }
+
+    .stamp {
+      display: inline-block;
+      border: 3px solid currentColor;
+      border-radius: 8px;
+      padding: 10px 18px;
+      transform: rotate(-6deg);
+      text-align: center;
+      position: relative;
+    }
+
+    .stamp::before {
+      content: "";
+      position: absolute;
+      inset: 4px;
+      border: 1px solid currentColor;
+      border-radius: 5px;
+      opacity: .55;
+    }
+
+    .stamp .stamp-text {
+      font-family: var(--stamp-font);
+      font-size: clamp(17px, 5.4vw, 21px);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      line-height: 1.15;
+      display: block;
+      font-weight: 900;
+    }
+
+    @media (prefers-reduced-motion:no-preference) {
+      .stamp {
+        animation: stampHit .42s cubic-bezier(.2, .9, .3, 1.2);
+      }
+    }
+
+    @keyframes stampHit {
+      0% {
+        transform: scale(2.2) rotate(-14deg);
+        opacity: 0;
+      }
+
+      65% {
+        transform: scale(.92) rotate(-4deg);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(1) rotate(-6deg);
+        opacity: 1;
+      }
+    }
+
+    .insight-text {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.55;
+      text-align: center;
+      color: var(--ink);
+      padding: 0 4px 16px;
+      font-weight: 700;
+    }
+
+    .footnote {
+      font-size: 10.5px;
+      color: var(--ink-faint);
+      text-align: center;
+      line-height: 1.6;
+      padding: 14px 0 20px;
+    }
+
+    .footnote .count {
+      display: block;
+      margin-top: 4px;
+      letter-spacing: .05em;
+    }
+
+    .reset-link {
+      display: block;
+      text-align: center;
+      background: none;
+      border: none;
+      font-family: var(--mono);
+      font-size: 10.5px;
+      color: var(--ink-faint);
+      text-decoration: underline;
+      cursor: pointer;
+      padding: 6px 0 18px;
+      width: 100%;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    .share-actions {
+      padding: 16px 0 4px;
+      text-align: center;
+    }
+
+    #shareImgBtn {
+      font-size: 13px;
+      letter-spacing: .08em;
+    }
+  </style>
 </head>
+
 <body>
-<div class="page">
+  <div class="page">
 
-  <div class="brand">
-    <span class="eyebrow">Kalkulator receh</span>
-    <h1>Worth It?</h1>
-    <p>Ubah harga barang jadi jam kerja kamu.</p>
-  </div>
-
-  <main class="receipt">
-    <div class="r-header">
-      <div class="r-title">☕ STRUK EFFORT KERJA</div>
-      <div class="r-sub">berapa keringet buat barang ini</div>
-      <div class="r-meta">
-        <span id="metaDate">--</span>
-        <span id="metaCount">Struk ke-1</span>
-      </div>
+    <div class="brand">
+      <span class="eyebrow">Kalkulator receh</span>
+      <h1>Worth It?</h1>
+      <p>Ubah harga barang jadi jam kerja kamu.</p>
     </div>
 
-    <hr class="dash">
-
-    <!-- SALARY: entry form -->
-    <section class="section" id="salaryFormSection">
-      <span class="section-label">Gaji kamu</span>
-      <div class="segmented" id="salaryTypeSeg" role="radiogroup" aria-label="Periode gaji">
-        <button type="button" class="seg-btn" data-type="daily" role="radio" aria-checked="false">Harian</button>
-        <button type="button" class="seg-btn" data-type="weekly" role="radio" aria-checked="false">Mingguan</button>
-        <button type="button" class="seg-btn active" data-type="monthly" role="radio" aria-checked="true">Bulanan</button>
-      </div>
-      <div class="field">
-        <span class="prefix">Rp</span>
-        <input type="text" inputmode="numeric" id="salaryInput" placeholder="5.000.000" aria-label="Jumlah gaji">
-      </div>
-      <div class="error-msg" id="salaryError"></div>
-      <button class="btn" id="saveSalaryBtn" type="button">Simpan Gaji</button>
-    </section>
-
-    <!-- SALARY: saved summary -->
-    <section class="section" id="salarySummarySection" hidden>
-      <span class="section-label">Gaji kamu</span>
-      <div class="salary-summary" id="salarySummary" style="display:flex;">
-        <span class="leader-row">
-          <span class="lbl" id="summaryLabel">GAJI BULANAN</span>
-          <span class="fill"></span>
-          <span class="amt" id="summaryAmount">Rp 0</span>
-        </span>
-        <button class="edit-link" id="editSalaryBtn" type="button">ubah</button>
-      </div>
-    </section>
-
-    <hr class="dash">
-
-    <!-- ITEM PRICE -->
-    <section class="section">
-      <span class="section-label">Harga barang</span>
-      <div class="field">
-        <span class="prefix">Rp</span>
-        <input type="text" inputmode="numeric" id="priceInput" placeholder="1.500.000" aria-label="Harga barang">
-      </div>
-      <div class="error-msg" id="priceError"></div>
-      <button class="btn" id="calcBtn" type="button">Hitung Effort</button>
-    </section>
-
-    <!-- RESULT -->
-    <div id="resultWrap" hidden>
-      <hr class="dash">
-      <div class="result" id="result" aria-live="polite">
-        <div class="section" style="padding-bottom:0;">
-          <div class="effort-label">Effort kerja kamu</div>
-          <div class="effort-value" id="effortValue">0 JAM KERJA</div>
-          <div class="effort-sub" id="effortSub"></div>
-          <div class="effort-percent" id="effortPercent"></div>
-
-          <div class="stamp-wrap">
-            <div class="stamp" id="stamp" style="color:var(--stamp-1);">
-              <span class="stamp-text" id="stampText">WORTH IT</span>
-            </div>
-          </div>
-
-          <p class="insight-text" id="insightText"></p>
+    <main class="receipt">
+      <div class="r-header">
+        <div class="r-title">☕ STRUK EFFORT KERJA</div>
+        <div class="r-sub">berapa keringet buat barang ini</div>
+        <div class="r-meta">
+          <span id="metaDate">--</span>
+          <span id="metaCount">Struk ke-1</span>
         </div>
       </div>
-    </div>
 
-    <!-- SHARE BUTTON -->
-    <div id="shareWrap" hidden>
       <hr class="dash">
-      <div class="share-actions">
-        <button class="btn" id="shareImgBtn" type="button">Simpan sebagai Gambar</button>
+
+      <!-- SALARY: entry form -->
+      <section class="section" id="salaryFormSection">
+        <span class="section-label">Gaji kamu</span>
+        <div class="segmented" id="salaryTypeSeg" role="radiogroup" aria-label="Periode gaji">
+          <button type="button" class="seg-btn" data-type="daily" role="radio" aria-checked="false">Harian</button>
+          <button type="button" class="seg-btn" data-type="weekly" role="radio" aria-checked="false">Mingguan</button>
+          <button type="button" class="seg-btn active" data-type="monthly" role="radio"
+            aria-checked="true">Bulanan</button>
+        </div>
+        <div class="field">
+          <span class="prefix">Rp</span>
+          <input type="text" inputmode="numeric" id="salaryInput" placeholder="5.000.000" aria-label="Jumlah gaji">
+        </div>
+        <div class="error-msg" id="salaryError"></div>
+        <button class="btn" id="saveSalaryBtn" type="button">Simpan Gaji</button>
+      </section>
+
+      <!-- SALARY: saved summary -->
+      <section class="section" id="salarySummarySection" hidden>
+        <span class="section-label">Gaji kamu</span>
+        <div class="salary-summary" id="salarySummary" style="display:flex;">
+          <span class="leader-row">
+            <span class="lbl" id="summaryLabel">GAJI BULANAN</span>
+            <span class="fill"></span>
+            <span class="amt" id="summaryAmount">Rp 0</span>
+          </span>
+          <button class="edit-link" id="editSalaryBtn" type="button">ubah</button>
+        </div>
+      </section>
+
+      <hr class="dash">
+
+      <!-- ITEM PRICE -->
+      <section class="section">
+        <span class="section-label">Harga barang</span>
+        <div class="field">
+          <span class="prefix">Rp</span>
+          <input type="text" inputmode="numeric" id="priceInput" placeholder="1.500.000" aria-label="Harga barang">
+        </div>
+        <div class="error-msg" id="priceError"></div>
+        <button class="btn" id="calcBtn" type="button">Hitung Effort</button>
+      </section>
+
+      <!-- RESULT -->
+      <div id="resultWrap" hidden>
+        <hr class="dash">
+        <div class="result" id="result" aria-live="polite">
+          <div class="section" style="padding-bottom:0;">
+            <div class="effort-label">Effort kerja kamu</div>
+            <div class="effort-value" id="effortValue">0 JAM KERJA</div>
+            <div class="effort-sub" id="effortSub"></div>
+            <div class="effort-percent" id="effortPercent"></div>
+
+            <div class="stamp-wrap">
+              <div class="stamp" id="stamp" style="color:var(--stamp-1);">
+                <span class="stamp-text" id="stampText">WORTH IT</span>
+              </div>
+            </div>
+
+            <p class="insight-text" id="insightText"></p>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div class="torn"></div>
-  </main>
+      <!-- SHARE BUTTON -->
+      <div id="shareWrap" hidden>
+        <hr class="dash">
+        <div class="share-actions">
+          <button class="btn" id="shareImgBtn" type="button">Simpan sebagai Gambar</button>
+        </div>
+      </div>
 
-  <p class="footnote">
-    Simulasi doang, bukan nasihat keuangan beneran.<br>
-    Data gaji disimpan lokal di browser kamu — nggak dikirim ke mana-mana.
-    <span class="count" id="footCount"></span>
-  </p>
-  <button class="reset-link" id="resetBtn" type="button" hidden>Hapus data gaji tersimpan</button>
+      <div class="torn"></div>
+    </main>
 
-</div>
+    <p class="footnote">
+      Simulasi doang, bukan nasihat keuangan beneran.<br>
+      Data gaji disimpan lokal di browser kamu — nggak dikirim ke mana-mana.
+      <span class="count" id="footCount"></span>
+    </p>
+    <button class="reset-link" id="resetBtn" type="button" hidden>Hapus data gaji tersimpan</button>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script>
-(function(){
-  "use strict";
+  </div>
 
-  var STORAGE_KEY = "worthit_salary_v1";
-  var COUNT_KEY = "worthit_calc_count";
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    (function () {
+      "use strict";
 
-  var HOUR_DIVISOR = { daily: 8, weekly: 40, monthly: 173 };
-  var PERIOD_LABEL = { daily: "HARIAN", weekly: "MINGGUAN", monthly: "BULANAN" };
-  var PERIOD_LABEL_LC = { daily: "harian", weekly: "mingguan", monthly: "bulanan" };
+      var STORAGE_KEY = "worthit_salary_v1";
+      var COUNT_KEY = "worthit_calc_count";
 
-  var TIERS = [
-    {
-      max: 4, key: "worthit", label: "WORTH IT", color: "var(--stamp-1)",
-      messages: [
-        "Recehan buat kantong kamu. Sikat, jangan kebanyakan mikir.",
-        "Cuma segelintir jam kerja. Aman banget, langsung checkout."
-      ]
-    },
-    {
-      max: 24, key: "aman", label: "MASIH AMAN", color: "var(--stamp-2)",
-      messages: [
-        "Beberapa hari kerja buat ini masih wajar, asal jangan keseringan.",
-        "Aman di kantong, tapi tetap catat di pengeluaran bulan ini."
-      ]
-    },
-    {
-      max: 80, key: "berlebihan", label: "AGAK BERLEBIHAN", color: "var(--stamp-3)",
-      messages: [
-        "Dua mingguan keringet buat satu barang. Coba tidur dulu, mikir lagi besok.",
-        "Boleh sih, tapi cek dulu ada versi lebih murah apa nggak."
-      ]
-    },
-    {
-      max: 173, key: "bukan-target", label: "BUKAN TARGET PASAR KAMU", color: "var(--stamp-4)",
-      messages: [
-        "Sebulan gajian abis buat satu barang. Ini kayaknya emang belum buat kamu.",
-        "Barangnya oke, tapi target marketnya bukan dompet kamu sekarang."
-      ]
-    },
-    {
-      max: Infinity, key: "miskin", label: "MISKIN MEMAKSAKAN DIRI", color: "var(--stamp-5)",
-      messages: [
-        "Lebih dari sebulan kerja buat ini. Healing dulu gih, mikir belakangan.",
-        "Maksa beli sekarang artinya mie instan sampai gajian berikutnya."
-      ]
-    }
-  ];
+      var HOUR_DIVISOR = { daily: 8, weekly: 40, monthly: 173 };
+      var PERIOD_LABEL = { daily: "HARIAN", weekly: "MINGGUAN", monthly: "BULANAN" };
+      var PERIOD_LABEL_LC = { daily: "harian", weekly: "mingguan", monthly: "bulanan" };
 
-  var el = {};
-  [
-    "salaryFormSection","salarySummarySection","salaryTypeSeg","salaryInput","salaryError",
-    "saveSalaryBtn","summaryLabel","summaryAmount","editSalaryBtn",
-    "priceInput","priceError","calcBtn",
-    "resultWrap","result","effortValue","effortSub","effortPercent",
-    "stamp","stampText","insightText",
-    "metaDate","metaCount","footCount","resetBtn",
-    "shareWrap","shareImgBtn"
-  ].forEach(function(id){ el[id] = document.getElementById(id); });
+      var TIERS = [
+        {
+          max: 4, key: "worthit", label: "CUMA RECEHAN", color: "var(--stamp-1)",
+          messages: [
+            "Recehan buat kantong kamu. Sikat, jangan kebanyakan mikir.",
+            "Cuma segelintir jam kerja. Aman banget, langsung checkout."
+          ]
+        },
+        {
+          max: 24, key: "aman", label: "MENDING SIMPAN DUIT", color: "var(--stamp-2)",
+          messages: [
+            "Masih aman sih, tapi ingat ya, sisa tabungan kamu belum bisa buat pensiun dini.",
+            "Nggak bikin miskin, tapi jangan langsung ngerasa jadi sultan komplek dulu."
+          ]
+        },
+        {
+          max: 80, key: "berlebihan", label: "GAYA HIDUP ELITE", color: "var(--stamp-3)",
+          messages: [
+            "Dua minggu kerja keras bagai kuda cuma demi gengsi? Coba tidur, mimpi kamu ketinggian.",
+            "Gaya hidup elite, tapi saldo sulit. Sadar diri, tabungan kamu nangis lihat ini."
+          ]
+        },
+        {
+          max: 173, key: "bukan-target", label: "SADAR DIRI KACUNG", color: "var(--stamp-4)",
+          messages: [
+            "Sebulan gajian abis total. Kamu itu cuma buruh pabrik/korporat, bukan anak pemilik saham.",
+            "Barangnya emang estetik, tapi kondisi finansial kamu estetik-is-tragis kalau maksa beli."
+          ]
+        },
+        {
+          max: Infinity, key: "miskin", label: "MISKIN SOK ELITE", color: "var(--stamp-5)",
+          messages: [
+            "Lebih dari sebulan kerja keras cuma dituker barang ginian? Selamat menikmati kemiskinan struktural.",
+            "Maksa beli sekarang artinya siap-siap busung lapar dan pura-pura puasa sampai bulan depan."
+          ]
+        }
+      ];
 
-  var currentType = "monthly";
+      var el = {};
+      [
+        "salaryFormSection", "salarySummarySection", "salaryTypeSeg", "salaryInput", "salaryError",
+        "saveSalaryBtn", "summaryLabel", "summaryAmount", "editSalaryBtn",
+        "priceInput", "priceError", "calcBtn",
+        "resultWrap", "result", "effortValue", "effortSub", "effortPercent",
+        "stamp", "stampText", "insightText",
+        "metaDate", "metaCount", "footCount", "resetBtn",
+        "shareWrap", "shareImgBtn"
+      ].forEach(function (id) { el[id] = document.getElementById(id); });
 
-  // ---------- helpers ----------
-  function parseDigits(str){
-    var raw = (str || "").replace(/\D/g, "").replace(/^0+(?=\d)/, "");
-    return raw === "" ? 0 : parseInt(raw, 10);
-  }
+      var currentType = "monthly";
 
-  function fmtInt(n){
-    return Math.round(n).toLocaleString("id-ID");
-  }
-
-  function fmtRupiah(n){
-    return "Rp " + fmtInt(n);
-  }
-
-  function round1(n){
-    return Math.round(n * 10) / 10;
-  }
-
-  function fmtNum(n){
-    return n.toLocaleString("id-ID", { maximumFractionDigits: 1 });
-  }
-
-  function attachRupiahFormatting(input){
-    input.addEventListener("input", function(){
-      var cursorFromEnd = input.value.length - input.selectionStart;
-      var num = parseDigits(input.value);
-      input.value = num === 0 ? "" : fmtInt(num);
-      var pos = Math.max(input.value.length - cursorFromEnd, 0);
-      input.setSelectionRange(pos, pos);
-    });
-  }
-  attachRupiahFormatting(el.salaryInput);
-  attachRupiahFormatting(el.priceInput);
-
-  // ---------- salary type segmented control ----------
-  el.salaryTypeSeg.addEventListener("click", function(e){
-    var btn = e.target.closest(".seg-btn");
-    if (!btn) return;
-    currentType = btn.getAttribute("data-type");
-    Array.prototype.forEach.call(el.salaryTypeSeg.querySelectorAll(".seg-btn"), function(b){
-      var active = b === btn;
-      b.classList.toggle("active", active);
-      b.setAttribute("aria-checked", active ? "true" : "false");
-    });
-  });
-
-  // ---------- salary storage ----------
-  function loadSalary(){
-    try{
-      var raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return null;
-      var data = JSON.parse(raw);
-      if (!data || !HOUR_DIVISOR[data.type] || !(data.amount > 0)) return null;
-      return data;
-    } catch(e){
-      return null;
-    }
-  }
-
-  function saveSalary(type, amount){
-    try{
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ type: type, amount: amount }));
-      return true;
-    } catch(e){
-      return false;
-    }
-  }
-
-  function showSalaryForm(prefill){
-    el.salarySummarySection.hidden = true;
-    el.salaryFormSection.hidden = false;
-    el.resultWrap.hidden = true;
-    el.shareWrap.hidden = true;
-    el.result.classList.remove("show");
-    el.resetBtn.hidden = !prefill;
-    if (prefill){
-      currentType = prefill.type;
-      el.salaryInput.value = fmtInt(prefill.amount);
-      Array.prototype.forEach.call(el.salaryTypeSeg.querySelectorAll(".seg-btn"), function(b){
-        var active = b.getAttribute("data-type") === prefill.type;
-        b.classList.toggle("active", active);
-        b.setAttribute("aria-checked", active ? "true" : "false");
-      });
-    }
-    el.salaryInput.focus();
-  }
-
-  function showSalarySummary(data){
-    el.summaryLabel.textContent = "GAJI " + PERIOD_LABEL[data.type];
-    el.summaryAmount.textContent = fmtRupiah(data.amount);
-    el.salaryFormSection.hidden = true;
-    el.salarySummarySection.hidden = false;
-    el.resetBtn.hidden = false;
-  }
-
-  function refreshSalaryUI(){
-    var data = loadSalary();
-    if (data){
-      showSalarySummary(data);
-    } else {
-      showSalaryForm(null);
-    }
-  }
-
-  el.saveSalaryBtn.addEventListener("click", function(){
-    var amount = parseDigits(el.salaryInput.value);
-    if (amount <= 0){
-      el.salaryError.textContent = "Isi gaji dulu, angkanya harus lebih dari nol.";
-      el.salaryInput.focus();
-      return;
-    }
-    el.salaryError.textContent = "";
-    saveSalary(currentType, amount);
-    showSalarySummary({ type: currentType, amount: amount });
-  });
-
-  el.editSalaryBtn.addEventListener("click", function(){
-    showSalaryForm(loadSalary());
-  });
-
-  el.resetBtn.addEventListener("click", function(){
-    if (!loadSalary()){
-      return;
-    }
-    var ok = confirm("Hapus data gaji yang tersimpan di browser ini?");
-    if (!ok) return;
-    localStorage.removeItem(STORAGE_KEY);
-    refreshSalaryUI();
-    el.resultWrap.hidden = true;
-    el.shareWrap.hidden = true;
-    el.result.classList.remove("show");
-  });
-
-  // ---------- calculation ----------
-  function pickTier(totalHours){
-    for (var i = 0; i < TIERS.length; i++){
-      if (totalHours <= TIERS[i].max) return TIERS[i];
-    }
-    return TIERS[TIERS.length - 1];
-  }
-
-  function formatEffort(totalHours){
-    if (totalHours <= 40){
-      var hrs = totalHours < 10 ? round1(totalHours) : Math.round(totalHours);
-      return { value: fmtNum(hrs) + " JAM KERJA", sub: null };
-    }
-    var days = totalHours / 8;
-    var daysRounded = days < 20 ? round1(days) : Math.round(days);
-    var subParts = [];
-    if (days >= 5){
-      subParts.push("≈ " + fmtNum(round1(days / 5)) + " minggu kerja");
-    }
-    if (days >= 20){
-      subParts.push("≈ " + fmtNum(round1(days / 21.67)) + " bulan kerja");
-    }
-    subParts.push("(" + fmtNum(Math.round(totalHours)) + " jam)");
-    return { value: fmtNum(daysRounded) + " HARI KERJA", sub: subParts.join(" · ") };
-  }
-
-  function runCalculation(){
-    var salary = loadSalary();
-    if (!salary){
-      showSalaryForm(null);
-      el.salaryError.textContent = "Isi & simpan gaji dulu ya, baru bisa dihitung.";
-      return;
-    }
-
-    var price = parseDigits(el.priceInput.value);
-    if (price <= 0){
-      el.priceError.textContent = "Harga barangnya belum diisi.";
-      el.priceInput.focus();
-      return;
-    }
-    el.priceError.textContent = "";
-
-    var hourlyRate = salary.amount / HOUR_DIVISOR[salary.type];
-    var totalHours = price / hourlyRate;
-    var effort = formatEffort(totalHours);
-    var tier = pickTier(totalHours);
-    var percent = (price / salary.amount) * 100;
-    var msg = tier.messages[Math.floor(Math.random() * tier.messages.length)];
-
-    el.effortValue.textContent = effort.value;
-    el.effortSub.textContent = effort.sub || "";
-    el.effortPercent.textContent = "setara " + fmtNum(round1(percent)) + "% dari gaji " + PERIOD_LABEL_LC[salary.type] + " kamu";
-
-    el.stamp.style.color = tier.color;
-    el.stampText.textContent = tier.label;
-    el.insightText.textContent = msg;
-
-    el.resultWrap.hidden = false;
-    el.shareWrap.hidden = false;
-    el.result.classList.remove("show");
-    void el.result.offsetWidth; // restart animation
-    el.result.classList.add("show");
-
-    bumpCount();
-
-    el.resultWrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }
-
-  el.calcBtn.addEventListener("click", runCalculation);
-
-  // ---------- share as image ----------
-  el.shareImgBtn.addEventListener("click", function(){
-    var receipt = document.querySelector(".receipt");
-    if (!receipt || typeof html2canvas === "undefined") return;
-
-    el.shareImgBtn.textContent = "Membuat gambar...";
-    el.shareImgBtn.disabled = true;
-
-    html2canvas(receipt, {
-      backgroundColor: "#FBF8F1",
-      scale: 2,
-      useCORS: true,
-      logging: false
-    }).then(function(canvas){
-      var link = document.createElement("a");
-      var date = new Date().toISOString().slice(0,10);
-      link.download = "worth-it-" + date + ".png";
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-      el.shareImgBtn.textContent = "Tersimpan!";
-      setTimeout(function(){
-        el.shareImgBtn.textContent = "Simpan sebagai Gambar";
-        el.shareImgBtn.disabled = false;
-      }, 2000);
-    }).catch(function(){
-      el.shareImgBtn.textContent = "Gagal, coba lagi";
-      el.shareImgBtn.disabled = false;
-      setTimeout(function(){
-        el.shareImgBtn.textContent = "Simpan sebagai Gambar";
-      }, 2000);
-    });
-  });
-
-  [el.salaryInput, el.priceInput].forEach(function(input){
-    input.addEventListener("keydown", function(e){
-      if (e.key === "Enter"){
-        e.preventDefault();
-        if (input === el.salaryInput) el.saveSalaryBtn.click();
-        else el.calcBtn.click();
+      // ---------- helpers ----------
+      function parseDigits(str) {
+        var raw = (str || "").replace(/\D/g, "").replace(/^0+(?=\d)/, "");
+        return raw === "" ? 0 : parseInt(raw, 10);
       }
-    });
-  });
 
-  // ---------- receipt meta ----------
-  function renderMeta(){
-    var now = new Date();
-    el.metaDate.textContent = now.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
-    var count = 0;
-    try{ count = parseInt(localStorage.getItem(COUNT_KEY) || "0", 10) || 0; } catch(e){}
-    el.metaCount.textContent = "Struk ke-" + (count + 1);
-    el.footCount.textContent = count > 0 ? ("Sudah " + count + " kali cek effort di sini.") : "";
-  }
+      function fmtInt(n) {
+        return Math.round(n).toLocaleString("id-ID");
+      }
 
-  function bumpCount(){
-    var count = 0;
-    try{ count = parseInt(localStorage.getItem(COUNT_KEY) || "0", 10) || 0; } catch(e){}
-    count += 1;
-    try{ localStorage.setItem(COUNT_KEY, String(count)); } catch(e){}
-    el.metaCount.textContent = "Struk ke-" + count;
-    el.footCount.textContent = "Sudah " + count + " kali cek effort di sini.";
-  }
+      function fmtRupiah(n) {
+        return "Rp " + fmtInt(n);
+      }
 
-  // ---------- init ----------
-  renderMeta();
-  refreshSalaryUI();
+      function round1(n) {
+        return Math.round(n * 10) / 10;
+      }
 
-})();
-</script>
+      function fmtNum(n) {
+        return n.toLocaleString("id-ID", { maximumFractionDigits: 1 });
+      }
+
+      function attachRupiahFormatting(input) {
+        input.addEventListener("input", function () {
+          var cursorFromEnd = input.value.length - input.selectionStart;
+          var num = parseDigits(input.value);
+          input.value = num === 0 ? "" : fmtInt(num);
+          var pos = Math.max(input.value.length - cursorFromEnd, 0);
+          input.setSelectionRange(pos, pos);
+        });
+      }
+      attachRupiahFormatting(el.salaryInput);
+      attachRupiahFormatting(el.priceInput);
+
+      // ---------- salary type segmented control ----------
+      el.salaryTypeSeg.addEventListener("click", function (e) {
+        var btn = e.target.closest(".seg-btn");
+        if (!btn) return;
+        currentType = btn.getAttribute("data-type");
+        Array.prototype.forEach.call(el.salaryTypeSeg.querySelectorAll(".seg-btn"), function (b) {
+          var active = b === btn;
+          b.classList.toggle("active", active);
+          b.setAttribute("aria-checked", active ? "true" : "false");
+        });
+      });
+
+      // ---------- salary storage ----------
+      function loadSalary() {
+        try {
+          var raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return null;
+          var data = JSON.parse(raw);
+          if (!data || !HOUR_DIVISOR[data.type] || !(data.amount > 0)) return null;
+          return data;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function saveSalary(type, amount) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ type: type, amount: amount }));
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function showSalaryForm(prefill) {
+        el.salarySummarySection.hidden = true;
+        el.salaryFormSection.hidden = false;
+        el.resultWrap.hidden = true;
+        el.shareWrap.hidden = true;
+        el.result.classList.remove("show");
+        el.resetBtn.hidden = !prefill;
+        if (prefill) {
+          currentType = prefill.type;
+          el.salaryInput.value = fmtInt(prefill.amount);
+          Array.prototype.forEach.call(el.salaryTypeSeg.querySelectorAll(".seg-btn"), function (b) {
+            var active = b.getAttribute("data-type") === prefill.type;
+            b.classList.toggle("active", active);
+            b.setAttribute("aria-checked", active ? "true" : "false");
+          });
+        }
+        el.salaryInput.focus();
+      }
+
+      function showSalarySummary(data) {
+        el.summaryLabel.textContent = "GAJI " + PERIOD_LABEL[data.type];
+        el.summaryAmount.textContent = fmtRupiah(data.amount);
+        el.salaryFormSection.hidden = true;
+        el.salarySummarySection.hidden = false;
+        el.resetBtn.hidden = false;
+      }
+
+      function refreshSalaryUI() {
+        var data = loadSalary();
+        if (data) {
+          showSalarySummary(data);
+        } else {
+          showSalaryForm(null);
+        }
+      }
+
+      el.saveSalaryBtn.addEventListener("click", function () {
+        var amount = parseDigits(el.salaryInput.value);
+        if (amount <= 0) {
+          el.salaryError.textContent = "Isi gaji dulu, angkanya harus lebih dari nol.";
+          el.salaryInput.focus();
+          return;
+        }
+        el.salaryError.textContent = "";
+        saveSalary(currentType, amount);
+        showSalarySummary({ type: currentType, amount: amount });
+      });
+
+      el.editSalaryBtn.addEventListener("click", function () {
+        showSalaryForm(loadSalary());
+      });
+
+      el.resetBtn.addEventListener("click", function () {
+        if (!loadSalary()) {
+          return;
+        }
+        var ok = confirm("Hapus data gaji yang tersimpan di browser ini?");
+        if (!ok) return;
+        localStorage.removeItem(STORAGE_KEY);
+        refreshSalaryUI();
+        el.resultWrap.hidden = true;
+        el.shareWrap.hidden = true;
+        el.result.classList.remove("show");
+      });
+
+      // ---------- calculation ----------
+      function pickTier(totalHours) {
+        for (var i = 0; i < TIERS.length; i++) {
+          if (totalHours <= TIERS[i].max) return TIERS[i];
+        }
+        return TIERS[TIERS.length - 1];
+      }
+
+      function formatEffort(totalHours) {
+        if (totalHours <= 40) {
+          var hrs = totalHours < 10 ? round1(totalHours) : Math.round(totalHours);
+          return { value: fmtNum(hrs) + " JAM KERJA", sub: null };
+        }
+        var days = totalHours / 8;
+        var daysRounded = days < 20 ? round1(days) : Math.round(days);
+        var subParts = [];
+        if (days >= 5) {
+          subParts.push("≈ " + fmtNum(round1(days / 5)) + " minggu kerja");
+        }
+        if (days >= 20) {
+          subParts.push("≈ " + fmtNum(round1(days / 21.67)) + " bulan kerja");
+        }
+        subParts.push("(" + fmtNum(Math.round(totalHours)) + " jam)");
+        return { value: fmtNum(daysRounded) + " HARI KERJA", sub: subParts.join(" · ") };
+      }
+
+      function runCalculation() {
+        var salary = loadSalary();
+        if (!salary) {
+          showSalaryForm(null);
+          el.salaryError.textContent = "Isi & simpan gaji dulu ya, baru bisa dihitung.";
+          return;
+        }
+
+        var price = parseDigits(el.priceInput.value);
+        if (price <= 0) {
+          el.priceError.textContent = "Harga barangnya belum diisi.";
+          el.priceInput.focus();
+          return;
+        }
+        el.priceError.textContent = "";
+
+        var hourlyRate = salary.amount / HOUR_DIVISOR[salary.type];
+        var totalHours = price / hourlyRate;
+        var effort = formatEffort(totalHours);
+        var tier = pickTier(totalHours);
+        var percent = (price / salary.amount) * 100;
+        var msg = tier.messages[Math.floor(Math.random() * tier.messages.length)];
+
+        el.effortValue.textContent = effort.value;
+        el.effortSub.textContent = effort.sub || "";
+        el.effortPercent.textContent = "setara " + fmtNum(round1(percent)) + "% dari gaji " + PERIOD_LABEL_LC[salary.type] + " kamu";
+
+        el.stamp.style.color = tier.color;
+        el.stampText.textContent = tier.label;
+        el.insightText.textContent = msg;
+
+        el.resultWrap.hidden = false;
+        el.shareWrap.hidden = false;
+        el.result.classList.remove("show");
+        void el.result.offsetWidth; // restart animation
+        el.result.classList.add("show");
+
+        bumpCount();
+
+        el.resultWrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+
+      el.calcBtn.addEventListener("click", runCalculation);
+
+      // ---------- share as image ----------
+      el.shareImgBtn.addEventListener("click", function () {
+        var receipt = document.querySelector(".receipt");
+        if (!receipt || typeof html2canvas === "undefined") return;
+
+        el.shareImgBtn.textContent = "Membuat gambar...";
+        el.shareImgBtn.disabled = true;
+
+        // hide interactive elements before capture
+        var hideEls = [el.shareWrap, el.editSalaryBtn, el.resetBtn, el.calcBtn, el.saveSalaryBtn];
+        var prevDisplay = [];
+        hideEls.forEach(function (elem) {
+          if (!elem) return;
+          prevDisplay.push({ el: elem, vis: elem.style.visibility, h: elem.hidden });
+          elem.style.visibility = "hidden";
+        });
+
+        html2canvas(receipt, {
+          backgroundColor: "#FBF8F1",
+          scale: 3,
+          useCORS: true,
+          logging: false,
+          imageTimeout: 0,
+          onclone: function (doc) {
+            var r = doc.querySelector(".receipt");
+            if (!r) return;
+            var nodes = [r].concat(Array.prototype.slice.call(r.querySelectorAll("*")));
+            nodes.forEach(function (node) {
+              var cs = window.getComputedStyle(node);
+              var color = cs.color;
+              var fontWeight = cs.fontWeight;
+              var bg = cs.backgroundColor;
+              var border = cs.borderColor;
+              var borderBottom = cs.borderBottomColor;
+              if (color) node.style.color = color;
+              if (fontWeight) node.style.fontWeight = fontWeight;
+              if (bg && bg !== "rgba(0, 0, 0, 0)") node.style.backgroundColor = bg;
+              if (border && border !== "rgba(0, 0, 0, 0)") node.style.borderColor = border;
+              if (borderBottom && borderBottom !== "rgba(0, 0, 0, 0)") node.style.borderBottomColor = borderBottom;
+            });
+          }
+        }).then(function (canvas) {
+          // restore hidden elements
+          hideEls.forEach(function (elem, i) {
+            if (!elem) return;
+            elem.style.visibility = prevDisplay[i].vis || "";
+            elem.hidden = prevDisplay[i].h;
+          });
+
+          var link = document.createElement("a");
+          var date = new Date().toISOString().slice(0, 10);
+          link.download = "worth-it-" + date + ".png";
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+          el.shareImgBtn.textContent = "Tersimpan!";
+          setTimeout(function () {
+            el.shareImgBtn.textContent = "Simpan sebagai Gambar";
+            el.shareImgBtn.disabled = false;
+          }, 2000);
+        }).catch(function () {
+          hideEls.forEach(function (elem, i) {
+            if (!elem) return;
+            elem.style.visibility = prevDisplay[i].vis || "";
+            elem.hidden = prevDisplay[i].h;
+          });
+          el.shareImgBtn.textContent = "Gagal, coba lagi";
+          el.shareImgBtn.disabled = false;
+          setTimeout(function () {
+            el.shareImgBtn.textContent = "Simpan sebagai Gambar";
+          }, 2000);
+        });
+      });
+
+      [el.salaryInput, el.priceInput].forEach(function (input) {
+        input.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            if (input === el.salaryInput) el.saveSalaryBtn.click();
+            else el.calcBtn.click();
+          }
+        });
+      });
+
+      // ---------- receipt meta ----------
+      function renderMeta() {
+        var now = new Date();
+        el.metaDate.textContent = now.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+        var count = 0;
+        try { count = parseInt(localStorage.getItem(COUNT_KEY) || "0", 10) || 0; } catch (e) { }
+        el.metaCount.textContent = "Struk ke-" + (count + 1);
+        el.footCount.textContent = count > 0 ? ("Sudah " + count + " kali cek effort di sini.") : "";
+      }
+
+      function bumpCount() {
+        var count = 0;
+        try { count = parseInt(localStorage.getItem(COUNT_KEY) || "0", 10) || 0; } catch (e) { }
+        count += 1;
+        try { localStorage.setItem(COUNT_KEY, String(count)); } catch (e) { }
+        el.metaCount.textContent = "Struk ke-" + count;
+        el.footCount.textContent = "Sudah " + count + " kali cek effort di sini.";
+      }
+
+      // ---------- init ----------
+      renderMeta();
+      refreshSalaryUI();
+
+    })();
+  </script>
 </body>
+
 </html>

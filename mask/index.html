@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hand Mask Effects</title>
+<style>
+  :root{
+    --bg: #101312;
+    --panel: #171b19;
+    --line: #2a302c;
+    --ink: #eef2ee;
+    --ink-dim: #8a938c;
+    --accent: #c8ff4d;
+    --accent-dim: #7fa832;
+    --danger: #ff6b57;
+    --mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0; height:100%;
+    background: var(--bg); color: var(--ink);
+    font-family: var(--sans);
+    overflow: hidden;
+  }
+  .app{
+    display:flex; flex-direction:column; height:100vh; width:100vw;
+  }
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 16px; border-bottom:1px solid var(--line);
+    background: var(--panel);
+    flex-shrink:0;
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+    font-family: var(--mono); letter-spacing:0.02em;
+  }
+  .brand .dot{
+    width:8px; height:8px; border-radius:50%;
+    background: var(--ink-dim);
+    transition: background .2s, box-shadow .2s;
+  }
+  .brand .dot.live{
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse{ 50%{ opacity:.45; } }
+  .brand b{ font-weight:600; font-size:14px; }
+  .brand span{ color: var(--ink-dim); font-size:12px; }
+  .stat{
+    font-family: var(--mono); font-size:12px; color: var(--ink-dim);
+    display:flex; gap:14px;
+  }
+  .stat b{ color: var(--ink); font-weight:600; }
+
+  .stage{
+    position:relative; flex:1; min-height:0;
+    display:flex; align-items:center; justify-content:center;
+    background:
+      linear-gradient(var(--line) 1px, transparent 1px) 0 0/28px 28px,
+      linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0/28px 28px,
+      #0a0c0b;
+    background-blend-mode: normal;
+  }
+  .frame-wrap{
+    position:relative;
+    max-width:100%; max-height:100%;
+    aspect-ratio: 4/3;
+    border:1px solid var(--line);
+    background:#000;
+  }
+  video{ display:none; }
+  canvas{
+    display:block; width:100%; height:100%;
+  }
+  #mirrorTarget{ transform: scaleX(-1); }
+
+  .corner{
+    position:absolute; width:18px; height:18px; pointer-events:none;
+    border-color: var(--accent-dim); opacity:.7;
+  }
+  .corner.tl{ top:-1px; left:-1px; border-top:2px solid; border-left:2px solid; }
+  .corner.tr{ top:-1px; right:-1px; border-top:2px solid; border-right:2px solid; }
+  .corner.bl{ bottom:-1px; left:-1px; border-bottom:2px solid; border-left:2px solid; }
+  .corner.br{ bottom:-1px; right:-1px; border-bottom:2px solid; border-right:2px solid; }
+
+  .overlay-msg{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    text-align:center; padding:24px; flex-direction:column; gap:14px;
+  }
+  .overlay-msg p{ color: var(--ink-dim); font-size:13px; max-width:360px; line-height:1.5; margin:0; }
+  .overlay-msg .err{ color: var(--danger); }
+
+  .countdown-overlay{
+    position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+    font-family: var(--mono); font-weight:700; color: var(--accent);
+    font-size:clamp(64px, 22vw, 140px);
+    text-shadow: 0 0 30px rgba(200,255,77,.55);
+    background: rgba(0,0,0,0.18);
+    pointer-events:none; z-index:5;
+  }
+  .flash-overlay{
+    position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none;
+    z-index:6; transition: opacity 260ms ease-out;
+  }
+  .flash-overlay.flash{ opacity:0.9; transition: opacity 20ms ease-in; }
+
+  .fxbtn.warn{ color: var(--danger); border-color: rgba(255,107,87,0.35); }
+  .fxbtn.warn:hover{ border-color: var(--danger); color: var(--danger); }
+  .fxbtn.shutter.on{ background: var(--danger); color:#160b09; border-color:var(--danger); font-weight:600; }
+
+  button.primary{
+    font-family: var(--mono); font-size:13px; letter-spacing:.02em;
+    background: var(--accent); color:#0e130a; border:none;
+    padding:10px 22px; border-radius:3px; cursor:pointer;
+    font-weight:600;
+  }
+  button.primary:hover{ filter:brightness(1.08); }
+  button.primary:disabled{ opacity:.5; cursor:default; }
+
+  .bottombar{
+    flex-shrink:0; background: var(--panel); border-top:1px solid var(--line);
+    padding:12px 16px 14px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .row.between{ justify-content:space-between; }
+
+  .label{
+    font-family: var(--mono); font-size:10px; text-transform:uppercase;
+    letter-spacing:.12em; color: var(--ink-dim); width:100%;
+    margin-bottom:2px;
+  }
+
+  .fxbtn{
+    font-family: var(--mono); font-size:12px;
+    background: transparent; color: var(--ink-dim);
+    border:1px solid var(--line); border-radius:3px;
+    padding:8px 12px; cursor:pointer; white-space:nowrap;
+  }
+  .fxbtn:hover{ border-color: var(--accent-dim); color: var(--ink); }
+  .fxbtn.active{
+    background: var(--accent); color:#0e130a; border-color:var(--accent);
+    font-weight:600;
+  }
+
+  .toggle{
+    font-family: var(--mono); font-size:11px;
+    background: transparent; color: var(--ink-dim);
+    border:1px solid var(--line); border-radius:3px;
+    padding:7px 10px; cursor:pointer;
+    display:flex; align-items:center; gap:6px;
+  }
+  .toggle:hover{ color: var(--ink); }
+  .toggle .swatch{
+    width:8px; height:8px; border-radius:50%; background: var(--ink-dim);
+  }
+  .toggle.on .swatch{ background: var(--accent); }
+  .toggle.on{ color: var(--ink); border-color: var(--accent-dim); }
+
+  ::selection{ background: var(--accent); color:#0e130a; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="dot" id="liveDot"></div>
+      <b>HAND MASK EFFECTS</b>
+      <span>v1 · browser edition</span>
+    </div>
+    <div class="stat">
+      <span>FPS <b id="fpsVal">–</b></span>
+      <span>HANDS <b id="handsVal">–</b></span>
+      <span>NODES <b id="nodesVal">0</b></span>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="frame-wrap">
+      <div class="corner tl"></div><div class="corner tr"></div>
+      <div class="corner bl"></div><div class="corner br"></div>
+
+      <video id="video" playsinline muted></video>
+      <div id="mirrorTarget">
+        <canvas id="canvas" width="960" height="720"></canvas>
+      </div>
+
+      <div class="overlay-msg" id="startOverlay">
+        <p id="startText">Melacak jempol &amp; telunjuk kedua tanganmu, lalu memberi efek video di area poligon yang terbentuk. Butuh akses kamera.</p>
+        <button class="primary" id="startBtn">Aktifkan kamera</button>
+      </div>
+
+      <div class="countdown-overlay" id="countdownOverlay"></div>
+      <div class="flash-overlay" id="flashOverlay"></div>
+    </div>
+  </div>
+
+  <div class="bottombar">
+    <div class="row">
+      <span class="label">Efek (area poligon)</span>
+    </div>
+    <div class="row" id="fxRow">
+      <button class="fxbtn active" data-fx="none">0 · None</button>
+      <button class="fxbtn" data-fx="negative">1 · Negative</button>
+      <button class="fxbtn" data-fx="sepia">2 · Sepia</button>
+      <button class="fxbtn" data-fx="blur">3 · Blur</button>
+      <button class="fxbtn" data-fx="bokeh">4 · Bokeh</button>
+      <button class="fxbtn" data-fx="glitch">5 · Glitch</button>
+      <button class="fxbtn" data-fx="mono">6 · Monochrome</button>
+      <button class="fxbtn" data-fx="lowpoly">7 · Low Poly</button>
+    </div>
+    <div class="row between">
+      <div class="row">
+        <button class="toggle on" id="toggleZone"><span class="swatch"></span>Efek di DALAM poligon</button>
+        <button class="toggle on" id="toggleShape"><span class="swatch"></span>Bentuk: Convex-hull</button>
+        <button class="toggle on" id="toggleDebug"><span class="swatch"></span>Tampilkan landmark</button>
+        <button class="toggle" id="toggleMirror"><span class="swatch"></span>Mirror</button>
+        <button class="toggle" id="toggleFacet"><span class="swatch"></span>Facet: Medium</button>
+      </div>
+      <button class="fxbtn" id="snapBtn">⤓ Screenshot</button>
+    </div>
+
+    <div class="row between">
+      <div class="row">
+        <button class="toggle" id="toggleManual"><span class="swatch"></span>Manual Shape: Off</button>
+        <button class="fxbtn" id="undoNodeBtn">↺ Undo titik</button>
+        <button class="fxbtn warn" id="clearNodesBtn">✕ Clear titik</button>
+      </div>
+      <span class="label" style="width:auto; margin:0;">Pinch cepat = tambah titik · 👌 tahan = shutter 5 detik</span>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+const mirrorTarget = document.getElementById('mirrorTarget');
+const startOverlay = document.getElementById('startOverlay');
+const startBtn = document.getElementById('startBtn');
+const startText = document.getElementById('startText');
+const liveDot = document.getElementById('liveDot');
+const fpsVal = document.getElementById('fpsVal');
+const handsVal = document.getElementById('handsVal');
+const fxRow = document.getElementById('fxRow');
+const toggleZone = document.getElementById('toggleZone');
+const toggleShape = document.getElementById('toggleShape');
+const toggleDebug = document.getElementById('toggleDebug');
+const toggleMirror = document.getElementById('toggleMirror');
+const toggleFacet = document.getElementById('toggleFacet');
+const snapBtn = document.getElementById('snapBtn');
+const toggleManual = document.getElementById('toggleManual');
+const undoNodeBtn = document.getElementById('undoNodeBtn');
+const clearNodesBtn = document.getElementById('clearNodesBtn');
+const nodesVal = document.getElementById('nodesVal');
+const countdownOverlay = document.getElementById('countdownOverlay');
+const flashOverlay = document.getElementById('flashOverlay');
+
+let state = {
+  fx: 'none',
+  effectInside: true,
+  hullMode: true,
+  showDebug: true,
+  mirror: false,
+  running: false,
+  facetCell: 34, // px — ukuran sel grid low-poly
+  manualMode: false,
+  manualNodes: [], // [[x,y], ...] — dibentuk lewat gesture "quick pinch"
+};
+
+// ---------- offscreen buffers ----------
+const workCanvas = document.createElement('canvas');
+const workCtx = workCanvas.getContext('2d');
+const fxCanvas = document.createElement('canvas');
+const fxCtx = fxCanvas.getContext('2d');
+
+function sizeCanvases(w, h){
+  canvas.width = w; canvas.height = h;
+  workCanvas.width = w; workCanvas.height = h;
+  fxCanvas.width = w; fxCanvas.height = h;
+}
+
+// ---------- effects (canvas 2D) ----------
+function applyBuiltInFilter(cssFilter){
+  fxCtx.save();
+  fxCtx.filter = cssFilter;
+  fxCtx.drawImage(video, 0, 0, fxCanvas.width, fxCanvas.height);
+  fxCtx.restore();
+}
+
+function fxNegative(){ applyBuiltInFilter('invert(1)'); }
+function fxSepia(){ applyBuiltInFilter('sepia(1) saturate(1.3)'); }
+function fxBlur(){ applyBuiltInFilter('blur(9px)'); }
+function fxMono(){ applyBuiltInFilter('grayscale(1) contrast(1.05)'); }
+
+function fxBokeh(){
+  fxCtx.save();
+  fxCtx.filter = 'blur(14px) saturate(1.2) brightness(1.05)';
+  fxCtx.drawImage(video, 0, 0, fxCanvas.width, fxCanvas.height);
+  fxCtx.restore();
+  // glow pass: draw bright-boosted, more blurred, screen-blended on top
+  fxCtx.save();
+  fxCtx.filter = 'blur(28px) brightness(1.6) contrast(1.3)';
+  fxCtx.globalCompositeOperation = 'screen';
+  fxCtx.globalAlpha = 0.55;
+  fxCtx.drawImage(video, 0, 0, fxCanvas.width, fxCanvas.height);
+  fxCtx.restore();
+  fxCtx.globalAlpha = 1;
+  fxCtx.globalCompositeOperation = 'source-over';
+}
+
+let glitchTick = 0;
+function fxGlitch(){
+  const w = fxCanvas.width, h = fxCanvas.height;
+  fxCtx.clearRect(0, 0, w, h);
+  fxCtx.drawImage(video, 0, 0, w, h);
+
+  glitchTick++;
+  const shift = Math.max(3, Math.floor(w / 90));
+
+  // RGB channel split via composite offsets
+  fxCtx.save();
+  fxCtx.globalCompositeOperation = 'lighter';
+  fxCtx.globalAlpha = 0.55;
+  fxCtx.drawImage(video, shift, 0, w, h);
+  fxCtx.globalAlpha = 0.35;
+  fxCtx.drawImage(video, -shift, 0, w, h);
+  fxCtx.restore();
+  fxCtx.globalAlpha = 1;
+
+  // horizontal slice tearing
+  const slices = 5;
+  for (let i = 0; i < slices; i++){
+    const sh = Math.max(2, Math.floor(h / 28));
+    const sy = Math.floor(Math.random() * (h - sh));
+    const dx = Math.floor((Math.random() - 0.5) * 40);
+    const imgData = fxCtx.getImageData(0, sy, w, sh);
+    fxCtx.putImageData(imgData, dx, sy);
+  }
+
+  if (glitchTick % 5 === 0){
+    fxCtx.fillStyle = `rgba(200,255,77,${0.03 + Math.random()*0.04})`;
+    fxCtx.fillRect(0, 0, w, h);
+  }
+}
+
+// ---------- low poly (triangle mesh mosaic) ----------
+let lowPolyMeshCache = null;
+
+function buildLowPolyMesh(w, h, cell){
+  const cols = Math.ceil(w / cell) + 1;
+  const rows = Math.ceil(h / cell) + 1;
+  const jitter = cell * 0.42;
+
+  const grid = [];
+  for (let r = 0; r < rows; r++){
+    grid[r] = [];
+    for (let c = 0; c < cols; c++){
+      let x = c * cell, y = r * cell;
+      // titik di tepi tidak di-jitter, biar mesh menutup penuh sampai pinggir kanvas
+      if (r > 0 && r < rows - 1) y += (Math.random() - 0.5) * jitter;
+      if (c > 0 && c < cols - 1) x += (Math.random() - 0.5) * jitter;
+      grid[r][c] = [Math.min(w, Math.max(0, x)), Math.min(h, Math.max(0, y))];
+    }
+  }
+
+  const points = [];
+  const idx = (r, c) => r * cols + c;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) points.push(grid[r][c]);
+
+  const triangles = [];
+  for (let r = 0; r < rows - 1; r++){
+    for (let c = 0; c < cols - 1; c++){
+      const p00 = idx(r, c), p10 = idx(r + 1, c), p01 = idx(r, c + 1), p11 = idx(r + 1, c + 1);
+      // arah diagonal dirandom per sel biar hasil mozaik terasa lebih organik
+      if (Math.random() < 0.5){
+        triangles.push([p00, p10, p01]);
+        triangles.push([p10, p11, p01]);
+      } else {
+        triangles.push([p00, p10, p11]);
+        triangles.push([p00, p11, p01]);
+      }
+    }
+  }
+
+  return { w, h, cell, points, triangles };
+}
+
+function getLowPolyMesh(w, h){
+  if (lowPolyMeshCache && lowPolyMeshCache.w === w && lowPolyMeshCache.h === h && lowPolyMeshCache.cell === state.facetCell){
+    return lowPolyMeshCache;
+  }
+  lowPolyMeshCache = buildLowPolyMesh(w, h, state.facetCell);
+  return lowPolyMeshCache;
+}
+
+function fxLowPoly(){
+  const w = fxCanvas.width, h = fxCanvas.height;
+  const mesh = getLowPolyMesh(w, h);
+
+  // ambil warna dari frame video mentah (workCanvas), bukan dari fxCanvas
+  const src = workCtx.getImageData(0, 0, w, h).data;
+
+  fxCtx.clearRect(0, 0, w, h);
+  fxCtx.lineJoin = 'round';
+
+  for (const tri of mesh.triangles){
+    const pa = mesh.points[tri[0]], pb = mesh.points[tri[1]], pc = mesh.points[tri[2]];
+    const cx = Math.min(w - 1, Math.max(0, Math.round((pa[0] + pb[0] + pc[0]) / 3)));
+    const cy = Math.min(h - 1, Math.max(0, Math.round((pa[1] + pb[1] + pc[1]) / 3)));
+    const p = (cy * w + cx) * 4;
+    const r = src[p], g = src[p + 1], b = src[p + 2];
+    const fill = `rgb(${r},${g},${b})`;
+
+    fxCtx.beginPath();
+    fxCtx.moveTo(pa[0], pa[1]);
+    fxCtx.lineTo(pb[0], pb[1]);
+    fxCtx.lineTo(pc[0], pc[1]);
+    fxCtx.closePath();
+    fxCtx.fillStyle = fill;
+    fxCtx.fill();
+    fxCtx.strokeStyle = fill;
+    fxCtx.lineWidth = 1; // stroke tipis warna sama biar celah antar-facet tidak terlihat
+    fxCtx.stroke();
+  }
+}
+
+const EFFECTS = {
+  none:     null,
+  negative: fxNegative,
+  sepia:    fxSepia,
+  blur:     fxBlur,
+  bokeh:    fxBokeh,
+  glitch:   fxGlitch,
+  mono:     fxMono,
+  lowpoly:  fxLowPoly,
+};
+
+// ---------- hand landmarker setup ----------
+let handLandmarker = null;
+let lastVideoTime = -1;
+
+async function initLandmarker(){
+  startText.textContent = 'Memuat model deteksi tangan…';
+  const vision = await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+  );
+  handLandmarker = await HandLandmarker.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+      delegate: "GPU"
+    },
+    runningMode: "VIDEO",
+    numHands: 2,
+    minHandDetectionConfidence: 0.6,
+    minHandPresenceConfidence: 0.6,
+    minTrackingConfidence: 0.6,
+  });
+}
+
+async function startCamera(){
+  startBtn.disabled = true;
+  try{
+    await initLandmarker();
+  }catch(err){
+    startText.innerHTML = `<span class="err">Gagal memuat model deteksi tangan.</span><br>Cek koneksi internet (butuh akses ke cdn.jsdelivr.net &amp; storage.googleapis.com), lalu coba lagi. Kalau ini dibuka di dalam preview artifact yang jaringannya dibatasi, unduh file HTML ini dan buka langsung di browser.`;
+    startBtn.disabled = false;
+    return;
+  }
+
+  startText.textContent = 'Meminta izin kamera…';
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 960 }, height: { ideal: 720 } },
+      audio: false
+    });
+    video.srcObject = stream;
+    await video.play();
+  }catch(err){
+    startText.innerHTML = `<span class="err">Kamera tidak dapat diakses.</span><br>Pastikan izin kamera diberikan ke halaman ini.`;
+    startBtn.disabled = false;
+    return;
+  }
+
+  sizeCanvases(video.videoWidth || 960, video.videoHeight || 720);
+  startOverlay.style.display = 'none';
+  liveDot.classList.add('live');
+  state.running = true;
+  requestAnimationFrame(loop);
+}
+
+startBtn.addEventListener('click', startCamera);
+
+// ---------- geometry helpers ----------
+function convexHull(points){
+  // Andrew's monotone chain
+  const pts = points.slice().sort((a,b)=> a[0]-b[0] || a[1]-b[1]);
+  const cross = (o,a,b) => (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0]);
+  const lower = [];
+  for (const p of pts){
+    while (lower.length>=2 && cross(lower[lower.length-2], lower[lower.length-1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  const upper = [];
+  for (let i = pts.length-1; i>=0; i--){
+    const p = pts[i];
+    while (upper.length>=2 && cross(upper[upper.length-2], upper[upper.length-1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  upper.pop(); lower.pop();
+  return lower.concat(upper);
+}
+
+function tracePolygon(pts){
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.closePath();
+}
+
+// ---------- gesture detection ----------
+// state per tangan untuk deteksi rising-edge (baru "pinch"/"OK" di frame ini, tidak di frame sebelumnya)
+const gestureState = {
+  Left:  { pinch: false, ok: false },
+  Right: { pinch: false, ok: false },
+};
+
+function dist(a, b){ return Math.hypot(a[0]-b[0], a[1]-b[1]); }
+
+// Klasifikasi gesture dari 21 titik landmark (dalam koordinat pixel kanvas P[0..20])
+function classifyHand(P){
+  const wrist = P[0];
+  const handScale = dist(wrist, P[9]) || 1; // wrist -> middle MCP, referensi skala tangan
+
+  const pinchDist = dist(P[4], P[8]); // thumb tip <-> index tip
+  const isPinching = pinchDist < handScale * 0.42;
+
+  const isExtended = (tip, pip) => dist(wrist, P[tip]) > dist(wrist, P[pip]) * 1.08;
+  const middleExt = isExtended(12, 10);
+  const ringExt   = isExtended(16, 14);
+  const pinkyExt  = isExtended(20, 18);
+
+  const isOK = isPinching && middleExt && ringExt && pinkyExt;
+  const isNodePinch = isPinching && !isOK; // pinch "polos" (jari lain menekuk) = gesture tambah titik
+
+  return { isNodePinch, isOK, midpoint: [(P[4][0]+P[8][0])/2, (P[4][1]+P[8][1])/2] };
+}
+
+function addManualNode(pt){
+  if (state.manualNodes.length >= 24) return; // batas wajar biar tidak runaway
+  state.manualNodes.push(pt);
+  nodesVal.textContent = state.manualNodes.length;
+}
+
+// ---------- shutter (gesture "OK" -> hitung mundur -> capture) ----------
+let shutterActive = false;
+let shutterTimer = null;
+const SHUTTER_SECONDS = 5;
+
+function doCapture(){
+  const link = document.createElement('a');
+  link.download = `hand-mask-${Date.now()}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  flashOverlay.classList.add('flash');
+  setTimeout(() => flashOverlay.classList.remove('flash'), 150);
+}
+
+function triggerShutter(){
+  if (shutterActive) return;
+  shutterActive = true;
+  let remaining = SHUTTER_SECONDS;
+  countdownOverlay.style.display = 'flex';
+  countdownOverlay.textContent = remaining;
+
+  shutterTimer = setInterval(() => {
+    remaining -= 1;
+    if (remaining <= 0){
+      clearInterval(shutterTimer);
+      countdownOverlay.textContent = '📸';
+      doCapture();
+      setTimeout(() => {
+        countdownOverlay.style.display = 'none';
+        shutterActive = false;
+      }, 550);
+    } else {
+      countdownOverlay.textContent = remaining;
+    }
+  }, 1000);
+}
+
+// ---------- main loop ----------
+let fpsHistory = [];
+let prevT = performance.now();
+
+function loop(){
+  if (!state.running) return;
+
+  if (video.currentTime !== lastVideoTime && handLandmarker){
+    lastVideoTime = video.currentTime;
+    const w = canvas.width, h = canvas.height;
+
+    const result = handLandmarker.detectForVideo(video, performance.now());
+
+    // draw base frame
+    ctx.clearRect(0,0,w,h);
+    workCtx.clearRect(0,0,w,h);
+    workCtx.drawImage(video, 0, 0, w, h);
+    ctx.drawImage(workCanvas, 0, 0);
+
+    // collect thumb/index per hand label + deteksi gesture (pinch tambah-titik, OK shutter)
+    const handPts = {};
+    let handCount = 0;
+    if (result.landmarks && result.landmarks.length){
+      handCount = result.landmarks.length;
+      result.landmarks.forEach((lm, i) => {
+        const handedness = result.handedness[i]?.[0]?.categoryName || `H${i}`;
+        const thumb = lm[4], index = lm[8];
+        handPts[handedness] = {
+          thumb: [thumb.x * w, thumb.y * h],
+          index: [index.x * w, index.y * h],
+        };
+
+        // gesture: butuh label tangan yang dikenal (Left/Right) biar state rising-edge konsisten
+        if (handedness === 'Left' || handedness === 'Right'){
+          const P = lm.map(p => [p.x * w, p.y * h]);
+          const g = classifyHand(P);
+          const gs = gestureState[handedness];
+
+          if (g.isNodePinch && !gs.pinch && state.manualMode){
+            addManualNode(g.midpoint);
+          }
+          gs.pinch = g.isNodePinch;
+
+          if (g.isOK && !gs.ok){
+            triggerShutter();
+          }
+          gs.ok = g.isOK;
+        }
+
+        if (state.showDebug){
+          ctx.fillStyle = 'rgba(200,255,77,0.75)';
+          lm.forEach(p => {
+            ctx.beginPath();
+            ctx.arc(p.x*w, p.y*h, 2.2, 0, Math.PI*2);
+            ctx.fill();
+          });
+        }
+      });
+    }
+    handsVal.textContent = handCount;
+
+    let polygon = null;
+    if (state.manualMode){
+      if (state.manualNodes.length >= 3) polygon = state.manualNodes;
+    } else if (handPts.Left && handPts.Right){
+      const pts = [handPts.Left.thumb, handPts.Left.index, handPts.Right.thumb, handPts.Right.index];
+      polygon = state.hullMode ? convexHull(pts) : [handPts.Left.thumb, handPts.Left.index, handPts.Right.index, handPts.Right.thumb];
+    }
+
+    if (polygon && polygon.length >= 3){
+      const effectFn = EFFECTS[state.fx];
+      if (effectFn){
+        effectFn();
+
+        ctx.save();
+        if (state.effectInside){
+          tracePolygon(polygon);
+          ctx.clip();
+          ctx.drawImage(fxCanvas, 0, 0);
+        } else {
+          ctx.drawImage(fxCanvas, 0, 0);
+          tracePolygon(polygon);
+          ctx.save();
+          ctx.clip();
+          ctx.drawImage(workCanvas, 0, 0);
+          ctx.restore();
+        }
+        ctx.restore();
+      }
+
+      if (state.showDebug && !state.manualMode){
+        ctx.save();
+        ctx.strokeStyle = '#c8ff4d';
+        ctx.lineWidth = 2;
+        tracePolygon(polygon);
+        ctx.stroke();
+        ctx.restore();
+        [handPts.Left, handPts.Right].forEach((h, idx) => {
+          if (!h) return;
+          ctx.fillStyle = idx === 0 ? '#ff6b57' : '#4dc8ff';
+          [h.thumb, h.index].forEach(p => {
+            ctx.beginPath(); ctx.arc(p[0], p[1], 5, 0, Math.PI*2); ctx.fill();
+          });
+        });
+      }
+    }
+
+    // ---- visualisasi node manual (jalan independen dari jumlah titik, & dari toggle debug) ----
+    if (state.manualMode && state.manualNodes.length > 0){
+      ctx.save();
+      ctx.strokeStyle = '#c8ff4d';
+      ctx.lineWidth = 2;
+      ctx.setLineDash(state.manualNodes.length < 3 ? [6, 5] : []);
+      ctx.beginPath();
+      ctx.moveTo(state.manualNodes[0][0], state.manualNodes[0][1]);
+      for (let i = 1; i < state.manualNodes.length; i++){
+        ctx.lineTo(state.manualNodes[i][0], state.manualNodes[i][1]);
+      }
+      if (state.manualNodes.length >= 3) ctx.closePath();
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      state.manualNodes.forEach((p, i) => {
+        ctx.fillStyle = i === state.manualNodes.length - 1 ? '#ffffff' : '#c8ff4d';
+        ctx.beginPath();
+        ctx.arc(p[0], p[1], 6, 0, Math.PI*2);
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    const now = performance.now();
+    const fps = 1000 / (now - prevT);
+    prevT = now;
+    fpsHistory.push(fps);
+    if (fpsHistory.length > 20) fpsHistory.shift();
+    const avgFps = fpsHistory.reduce((a,b)=>a+b,0) / fpsHistory.length;
+    fpsVal.textContent = avgFps.toFixed(0);
+  }
+
+  requestAnimationFrame(loop);
+}
+
+// ---------- UI wiring ----------
+fxRow.addEventListener('click', (e) => {
+  const btn = e.target.closest('.fxbtn[data-fx]');
+  if (!btn) return;
+  state.fx = btn.dataset.fx;
+  [...fxRow.querySelectorAll('.fxbtn')].forEach(b => b.classList.toggle('active', b === btn));
+});
+
+toggleZone.addEventListener('click', () => {
+  state.effectInside = !state.effectInside;
+  toggleZone.classList.toggle('on', state.effectInside);
+  toggleZone.innerHTML = `<span class="swatch"></span>Efek di ${state.effectInside ? 'DALAM' : 'LUAR'} poligon`;
+});
+toggleShape.addEventListener('click', () => {
+  state.hullMode = !state.hullMode;
+  toggleShape.classList.toggle('on', state.hullMode);
+  toggleShape.innerHTML = `<span class="swatch"></span>Bentuk: ${state.hullMode ? 'Convex-hull' : 'Quad urut'}`;
+});
+toggleDebug.addEventListener('click', () => {
+  state.showDebug = !state.showDebug;
+  toggleDebug.classList.toggle('on', state.showDebug);
+});
+toggleMirror.addEventListener('click', () => {
+  state.mirror = !state.mirror;
+  toggleMirror.classList.toggle('on', state.mirror);
+  mirrorTarget.style.transform = state.mirror ? 'scaleX(-1)' : 'none';
+});
+
+const FACET_SIZES = [
+  { label: 'Small',  cell: 18 },
+  { label: 'Medium', cell: 34 },
+  { label: 'Large',  cell: 55 },
+];
+let facetIdx = 1;
+toggleFacet.addEventListener('click', () => {
+  facetIdx = (facetIdx + 1) % FACET_SIZES.length;
+  state.facetCell = FACET_SIZES[facetIdx].cell;
+  toggleFacet.innerHTML = `<span class="swatch"></span>Facet: ${FACET_SIZES[facetIdx].label}`;
+  toggleFacet.classList.toggle('on', facetIdx !== 1);
+  lowPolyMeshCache = null; // paksa regenerate mesh dengan ukuran baru
+});
+snapBtn.addEventListener('click', doCapture);
+
+toggleManual.addEventListener('click', () => {
+  state.manualMode = !state.manualMode;
+  toggleManual.classList.toggle('on', state.manualMode);
+  toggleManual.innerHTML = `<span class="swatch"></span>Manual Shape: ${state.manualMode ? 'On' : 'Off'}`;
+});
+undoNodeBtn.addEventListener('click', () => {
+  state.manualNodes.pop();
+  nodesVal.textContent = state.manualNodes.length;
+});
+clearNodesBtn.addEventListener('click', () => {
+  state.manualNodes.length = 0;
+  nodesVal.textContent = 0;
+});
+
+// keyboard shortcuts (desktop)
+window.addEventListener('keydown', (e) => {
+  const map = {'0':'none','1':'negative','2':'sepia','3':'blur','4':'bokeh','5':'glitch','6':'mono','7':'lowpoly'};
+  if (map[e.key]){
+    state.fx = map[e.key];
+    [...fxRow.querySelectorAll('.fxbtn')].forEach(b => b.classList.toggle('active', b.dataset.fx === state.fx));
+  } else if (e.key === 'm'){ toggleZone.click(); }
+  else if (e.key === 'f'){ toggleShape.click(); }
+  else if (e.key === 'o'){ toggleDebug.click(); }
+  else if (e.key === 's'){ snapBtn.click(); }
+  else if (e.key === 'p'){ toggleManual.click(); }
+  else if (e.key === 'z'){ undoNodeBtn.click(); }
+  else if (e.key === 'c'){ clearNodesBtn.click(); }
+});
+</script>
+</body>
+</html>

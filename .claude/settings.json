@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python \"C:\\\\Users\\\\anang.pambudi\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"touch target accessibility keyboard feedback\" --domain ux -n 10)",
+      "Bash(python \"C:\\\\Users\\\\anang.pambudi\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"dark minimal tool professional\" --domain style -n 5)"
+    ]
+  }
+}

@@ -838,8 +838,8 @@ function pairHands(hands) {
 }
 
 // ── Gesture detection ─────────────────────────────────────────
-// Index-based state for up to 4 detected hands
-const gestureState = Array.from({ length: 20 }, () => ({ pinch: false, ok: false, lastNodeAt: 0, okStartAt: 0 }));
+// Per-person gesture state (keyed by person index after pairing, not detection order)
+const gestureState = Array.from({ length: 10 }, () => ({ pinch: false, ok: false, lastNodeAt: 0, okStartAt: 0 }));
 const NODE_PINCH_COOLDOWN = 2000;
 const OK_HOLD_MS = 3000;
 
@@ -925,46 +925,9 @@ function loop() {
       result.landmarks.forEach((lm, i) => {
         const handedness = result.handedness[i]?.[0]?.categoryName || `H${i}`;
         const wrist      = [lm[0].x * w, lm[0].y * h];
-        // Thumb tip (4) + pointer/index tip (8)
         const fingertips = [4, 8].map(fi => [lm[fi].x * w, lm[fi].y * h]);
-        allHands.push({ handedness, wrist, fingertips, lm });
-
-        // Gesture detection for manual mode (up to 4 hands)
-        const gs = gestureState[i];
-        if (gs) {
-          const P = lm.map(p => [p.x * w, p.y * h]);
-          const g = classifyHand(P);
-          if (g.isNodePinch && !gs.pinch && state.manualMode) {
-            const now = performance.now();
-            if (now - gs.lastNodeAt >= NODE_PINCH_COOLDOWN) {
-              addManualNode(g.midpoint);
-              gs.lastNodeAt = now;
-            }
-          }
-          gs.pinch = g.isNodePinch;
-
-          // OK gesture: must hold for OK_HOLD_MS before firing shutter
-          if (g.isOK) {
-            if (!gs.ok) gs.okStartAt = performance.now(); // start hold timer on first frame
-            const held = performance.now() - gs.okStartAt;
-            const progress = Math.min(held / OK_HOLD_MS, 1);
-            drawOKProgress(g.midpoint, progress);
-            if (progress >= 1 && !shutterActive) {
-              triggerShutter();
-              gs.okStartAt = performance.now(); // reset so next hold starts fresh
-            }
-          } else {
-            gs.okStartAt = 0; // released early — reset
-          }
-          gs.ok = g.isOK;
-        }
-
-        if (state.showDebug) {
-          ctx.fillStyle = 'rgba(200,255,77,0.75)';
-          lm.forEach(p => {
-            ctx.beginPath(); ctx.arc(p.x*w, p.y*h, 2.2, 0, Math.PI*2); ctx.fill();
-          });
-        }
+        const P = lm.map(p => [p.x * w, p.y * h]);
+        allHands.push({ handedness, wrist, fingertips, lm, P });
       });
     }
     handsVal.textContent = handCount;
@@ -974,6 +937,41 @@ function loop() {
       // Multi-person: pair hands and render one shape per person
       const people = pairHands(allHands);
       peopleVal.textContent = people.length || '–';
+
+      // Gesture detection per-person (stable across frames)
+      people.forEach((pair, pi) => {
+        const gs = gestureState[pi];
+        if (!gs) return;
+        // Classify all hands first, then aggregate — prevents second hand clobbering first
+        const gestures = pair.map(hand => classifyHand(hand.P));
+        const anyPinch = gestures.some(g => g.isNodePinch);
+        const anyOK    = gestures.some(g => g.isOK);
+        const okMid    = gestures.find(g => g.isOK)?.midpoint;
+
+        if (anyPinch && !gs.pinch && state.manualMode) {
+          const now = performance.now();
+          if (now - gs.lastNodeAt >= NODE_PINCH_COOLDOWN) {
+            const mid = gestures.find(g => g.isNodePinch)?.midpoint;
+            if (mid) addManualNode(mid);
+            gs.lastNodeAt = now;
+          }
+        }
+        gs.pinch = anyPinch;
+
+        if (anyOK) {
+          if (!gs.ok) gs.okStartAt = performance.now();
+          const held = performance.now() - gs.okStartAt;
+          const progress = Math.min(held / OK_HOLD_MS, 1);
+          if (okMid) drawOKProgress(okMid, progress);
+          if (progress >= 1 && !shutterActive) {
+            triggerShutter();
+            gs.okStartAt = performance.now();
+          }
+        } else {
+          gs.okStartAt = 0;
+        }
+        gs.ok = anyOK;
+      });
 
       people.forEach((pair, pi) => {
         const color = PERSON_COLORS[pi % PERSON_COLORS.length];
@@ -1002,8 +1000,12 @@ function loop() {
           ctx.strokeStyle = color; ctx.lineWidth = 2;
           tracePolygon(poly); ctx.stroke();
           ctx.restore();
-          pair.forEach(h => {
-            h.fingertips.forEach(p => {
+          pair.forEach(hand => {
+            ctx.fillStyle = 'rgba(200,255,77,0.75)';
+            hand.lm.forEach(p => {
+              ctx.beginPath(); ctx.arc(p.x*w, p.y*h, 2.2, 0, Math.PI*2); ctx.fill();
+            });
+            hand.fingertips.forEach(p => {
               ctx.fillStyle = color;
               ctx.beginPath(); ctx.arc(p[0], p[1], 5, 0, Math.PI * 2); ctx.fill();
             });

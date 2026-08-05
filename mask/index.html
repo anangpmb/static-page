@@ -259,7 +259,7 @@
     <canvas id="canvas" width="960" height="720"></canvas>
 
     <div class="overlay-msg" id="startOverlay">
-      <p id="startText">Deteksi hingga 4 tangan (2 orang) — semua ujung jari membentuk area masking efek video. Tiap orang dapat warna polygon berbeda. Butuh akses kamera.</p>
+      <p id="startText">Deteksi hingga 20 tangan (10 orang) — semua ujung jari membentuk area masking efek video. Tiap orang dapat warna polygon berbeda. Butuh akses kamera.</p>
       <button class="primary" id="startBtn">Aktifkan kamera</button>
     </div>
 
@@ -590,7 +590,7 @@ async function initLandmarker() {
       delegate: "GPU"
     },
     runningMode: "VIDEO",
-    numHands: 4,
+    numHands: 20,
     minHandDetectionConfidence: 0.55,
     minHandPresenceConfidence: 0.55,
     minTrackingConfidence: 0.55,
@@ -623,6 +623,17 @@ async function startCamera() {
 }
 startBtn.addEventListener('click', startCamera);
 
+async function applyStream(stream) {
+  video.srcObject = stream;
+  await new Promise((resolve, reject) => {
+    video.onloadedmetadata = resolve;
+    video.onerror = reject;
+  });
+  await video.play();
+  lastVideoTime = -1; // reset so the render loop picks up new frames immediately
+  sizeCanvases(video.videoWidth || 960, video.videoHeight || 720);
+}
+
 async function switchCamera() {
   if (!state.running) return;
   flipBtn.disabled = true;
@@ -640,16 +651,11 @@ async function switchCamera() {
       video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: state.facingMode },
       audio: false
     });
-    video.srcObject = stream;
-    await video.play();
-    sizeCanvases(video.videoWidth || 960, video.videoHeight || 720);
+    await applyStream(stream);
   } catch {
-    // fallback: try without facingMode constraint
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      video.srcObject = stream;
-      await video.play();
-      sizeCanvases(video.videoWidth || 960, video.videoHeight || 720);
+      await applyStream(stream);
     } catch { /* camera unavailable */ }
   }
   flipBtn.disabled = false;
@@ -707,7 +713,11 @@ function drawOKProgress(midpoint, progress) {
 
 // ── Multi-person hand pairing ─────────────────────────────────
 // Per-person accent colors: green, cyan, orange, pink
-const PERSON_COLORS = ['#c8ff4d', '#4dc8ff', '#ff9f4d', '#ff6b9d'];
+const PERSON_COLORS = [
+  '#c8ff4d', '#4dc8ff', '#ff9f4d', '#ff6b9d',
+  '#b44dff', '#4dffb4', '#ff4d4d', '#ffec4d',
+  '#ff4db4', '#4d8fff',
+];
 
 // Greedily pair Left+Right hands by wrist proximity.
 // Returns array of pairs: each entry is [leftHand?, rightHand?]
@@ -740,7 +750,7 @@ function pairHands(hands) {
 
 // ── Gesture detection ─────────────────────────────────────────
 // Index-based state for up to 4 detected hands
-const gestureState = Array.from({ length: 4 }, () => ({ pinch: false, ok: false, lastNodeAt: 0, okStartAt: 0 }));
+const gestureState = Array.from({ length: 20 }, () => ({ pinch: false, ok: false, lastNodeAt: 0, okStartAt: 0 }));
 const NODE_PINCH_COOLDOWN = 2000;
 const OK_HOLD_MS = 3000;
 

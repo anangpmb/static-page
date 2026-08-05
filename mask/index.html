@@ -58,6 +58,24 @@
   }
   .flash-overlay.flash{ opacity:0.9; transition:opacity 20ms ease-in; }
 
+  /* ── iOS capture preview ──────────────── */
+  .capture-preview{
+    position:absolute; inset:0; z-index:60;
+    background:rgba(0,0,0,0.93);
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    gap:18px; padding:28px;
+  }
+  .capture-preview[hidden]{ display:none; }
+  .capture-preview img{
+    max-width:100%; max-height:62dvh;
+    object-fit:contain; border-radius:10px;
+    box-shadow:0 4px 40px rgba(0,0,0,.7);
+    -webkit-user-select:none; user-select:none;
+  }
+  .capture-hint{ text-align:center; display:flex; flex-direction:column; gap:10px; align-items:center; }
+  .capture-hint p{ color:var(--ink-dim); font-size:13px; line-height:1.55; }
+
   /* ── Top HUD ──────────────────────────── */
   .hud-top{
     position:absolute; top:0; left:0; right:0; z-index:20;
@@ -265,6 +283,15 @@
 
     <div class="countdown-overlay" id="countdownOverlay"></div>
     <div class="flash-overlay" id="flashOverlay"></div>
+
+    <!-- iOS: long-press image to save to Photos -->
+    <div class="capture-preview" id="capturePreview" hidden>
+      <img id="captureImg" alt="Hasil foto">
+      <div class="capture-hint">
+        <p>Tekan &amp; tahan gambar,<br>lalu pilih <strong>Simpan ke Foto</strong></p>
+        <button class="primary" id="captureClose">Tutup</button>
+      </div>
+    </div>
   </div>
 
   <!-- Top HUD overlay -->
@@ -393,7 +420,10 @@ const flashOverlay     = document.getElementById('flashOverlay');
 const ctrlPanel    = document.getElementById('ctrlPanel');
 const panelHandle  = document.getElementById('panelHandle');
 const panelMore    = document.getElementById('panelMore');
-const flipBtn      = document.getElementById('flipBtn');
+const flipBtn        = document.getElementById('flipBtn');
+const capturePreview = document.getElementById('capturePreview');
+const captureImg     = document.getElementById('captureImg');
+const captureClose   = document.getElementById('captureClose');
 
 // ── Panel collapse / expand ────────────────────────────────────
 let panelOpen = false;
@@ -427,6 +457,21 @@ const workCanvas = document.createElement('canvas');
 const workCtx    = workCanvas.getContext('2d');
 const fxCanvas   = document.createElement('canvas');
 const fxCtx      = fxCanvas.getContext('2d');
+const blurCanvas = document.createElement('canvas');
+const blurCtx    = blurCanvas.getContext('2d');
+
+// iOS (WKWebView) didn't support canvas 2D filter until iOS 18
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const supportsCanvasFilter = (() => {
+  const c = document.createElement('canvas');
+  c.width = c.height = 1;
+  const t = c.getContext('2d');
+  t.filter = 'invert(1)';
+  t.fillStyle = '#fff';
+  t.fillRect(0, 0, 1, 1);
+  return t.getImageData(0, 0, 1, 1).data[0] < 10; // inverted white → black if supported
+})();
 
 function sizeCanvases(w, h) {
   canvas.width = w;   canvas.height = h;
@@ -460,24 +505,69 @@ function applyBuiltInFilter(cssFilter) {
   fxCtx.drawImage(video, 0, 0, fxCanvas.width, fxCanvas.height);
   fxCtx.restore();
 }
-function fxNegative(){ applyBuiltInFilter('invert(1)'); }
-function fxSepia()   { applyBuiltInFilter('sepia(1) saturate(1.3)'); }
-function fxBlur()    { applyBuiltInFilter('blur(9px)'); }
-function fxMono()    { applyBuiltInFilter('grayscale(1) contrast(1.05)'); }
+
+// Pixel-level op fallback for when canvas filter is unsupported (iOS < 18)
+function pixelOp(fn) {
+  const w = fxCanvas.width, h = fxCanvas.height;
+  fxCtx.drawImage(video, 0, 0, w, h);
+  const id = fxCtx.getImageData(0, 0, w, h);
+  const d = id.data;
+  for (let i = 0; i < d.length; i += 4) fn(d, i);
+  fxCtx.putImageData(id, 0, 0);
+}
+
+// Scale-down → smooth upscale approximates blur without CSS filter
+function scaledBlur(shift) {
+  const w = fxCanvas.width, h = fxCanvas.height;
+  const bw = Math.max(1, w >> shift), bh = Math.max(1, h >> shift);
+  if (blurCanvas.width !== bw)  blurCanvas.width  = bw;
+  if (blurCanvas.height !== bh) blurCanvas.height = bh;
+  blurCtx.imageSmoothingEnabled = true;
+  blurCtx.drawImage(video, 0, 0, bw, bh);
+  fxCtx.imageSmoothingEnabled = true;
+  fxCtx.imageSmoothingQuality = 'high';
+  fxCtx.drawImage(blurCanvas, 0, 0, w, h);
+}
+
+function fxNegative() {
+  if (supportsCanvasFilter) { applyBuiltInFilter('invert(1)'); return; }
+  pixelOp((d, i) => { d[i] = 255-d[i]; d[i+1] = 255-d[i+1]; d[i+2] = 255-d[i+2]; });
+}
+function fxSepia() {
+  if (supportsCanvasFilter) { applyBuiltInFilter('sepia(1) saturate(1.3)'); return; }
+  pixelOp((d, i) => {
+    const r = d[i], g = d[i+1], b = d[i+2];
+    d[i]   = Math.min(255, r*0.393 + g*0.769 + b*0.189);
+    d[i+1] = Math.min(255, r*0.349 + g*0.686 + b*0.168);
+    d[i+2] = Math.min(255, r*0.272 + g*0.534 + b*0.131);
+  });
+}
+function fxMono() {
+  if (supportsCanvasFilter) { applyBuiltInFilter('grayscale(1) contrast(1.05)'); return; }
+  pixelOp((d, i) => { const v = (d[i]*77 + d[i+1]*150 + d[i+2]*29) >> 8; d[i] = d[i+1] = d[i+2] = v; });
+}
+function fxBlur() {
+  if (supportsCanvasFilter) { applyBuiltInFilter('blur(9px)'); return; }
+  scaledBlur(3); // 1/8 size upscaled = smooth blur approximation
+}
 
 function fxBokeh() {
-  fxCtx.save();
-  fxCtx.filter = 'blur(14px) saturate(1.2) brightness(1.05)';
-  fxCtx.drawImage(video, 0, 0, fxCanvas.width, fxCanvas.height);
-  fxCtx.restore();
-  fxCtx.save();
-  fxCtx.filter = 'blur(28px) brightness(1.6) contrast(1.3)';
-  fxCtx.globalCompositeOperation = 'screen';
-  fxCtx.globalAlpha = 0.55;
-  fxCtx.drawImage(video, 0, 0, fxCanvas.width, fxCanvas.height);
-  fxCtx.restore();
-  fxCtx.globalAlpha = 1;
-  fxCtx.globalCompositeOperation = 'source-over';
+  if (supportsCanvasFilter) {
+    fxCtx.save();
+    fxCtx.filter = 'blur(14px) saturate(1.2) brightness(1.05)';
+    fxCtx.drawImage(video, 0, 0, fxCanvas.width, fxCanvas.height);
+    fxCtx.restore();
+    fxCtx.save();
+    fxCtx.filter = 'blur(28px) brightness(1.6) contrast(1.3)';
+    fxCtx.globalCompositeOperation = 'screen';
+    fxCtx.globalAlpha = 0.55;
+    fxCtx.drawImage(video, 0, 0, fxCanvas.width, fxCanvas.height);
+    fxCtx.restore();
+    fxCtx.globalAlpha = 1;
+    fxCtx.globalCompositeOperation = 'source-over';
+    return;
+  }
+  scaledBlur(4); // heavier than fxBlur for bokeh feel
 }
 
 let glitchTick = 0;
@@ -623,19 +713,11 @@ async function startCamera() {
 }
 startBtn.addEventListener('click', startCamera);
 
-async function applyStream(stream) {
-  video.srcObject = stream;
-  await new Promise((resolve, reject) => {
-    video.onloadedmetadata = resolve;
-    video.onerror = reject;
-  });
-  await video.play();
-  lastVideoTime = -1; // reset so the render loop picks up new frames immediately
-  sizeCanvases(video.videoWidth || 960, video.videoHeight || 720);
-}
+let cameraSwitching = false;
 
 async function switchCamera() {
-  if (!state.running) return;
+  if (!state.running || cameraSwitching) return;
+  cameraSwitching = true; // pause render loop so it can't corrupt lastVideoTime
   flipBtn.disabled = true;
   flipBtn.classList.add('spinning');
   setTimeout(() => flipBtn.classList.remove('spinning'), 380);
@@ -646,18 +728,25 @@ async function switchCamera() {
   state.facingMode = state.facingMode === 'user' ? 'environment' : 'user';
   flipBtn.setAttribute('aria-label', state.facingMode === 'user' ? 'Ganti ke kamera belakang' : 'Ganti ke kamera depan');
 
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: state.facingMode },
-      audio: false
+  async function startStream(constraints) {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: constraints, audio: false });
+    video.srcObject = stream;
+    await new Promise((resolve, reject) => {
+      video.addEventListener('loadedmetadata', resolve, { once: true });
+      video.addEventListener('error', reject, { once: true });
     });
-    await applyStream(stream);
-  } catch {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      await applyStream(stream);
-    } catch { /* camera unavailable */ }
+    await video.play();
+    sizeCanvases(video.videoWidth || 960, video.videoHeight || 720);
   }
+
+  try {
+    await startStream({ width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: state.facingMode });
+  } catch {
+    try { await startStream(true); } catch { /* camera unavailable */ }
+  }
+
+  lastVideoTime = -1; // reset only after new stream is fully ready
+  cameraSwitching = false;
   flipBtn.disabled = false;
 }
 flipBtn.addEventListener('click', switchCamera);
@@ -777,13 +866,20 @@ let shutterActive = false;
 const SHUTTER_SECONDS = 5;
 
 function doCapture() {
-  const link = document.createElement('a');
-  link.download = `hand-mask-${Date.now()}.png`;
-  link.href = canvas.toDataURL('image/png');
-  link.click();
   flashOverlay.classList.add('flash');
   setTimeout(() => flashOverlay.classList.remove('flash'), 150);
+  const dataURL = canvas.toDataURL('image/png');
+  if (isIOS) {
+    captureImg.src = dataURL;
+    capturePreview.hidden = false;
+  } else {
+    const link = document.createElement('a');
+    link.download = `hand-mask-${Date.now()}.png`;
+    link.href = dataURL;
+    link.click();
+  }
 }
+captureClose.addEventListener('click', () => { capturePreview.hidden = true; });
 
 function triggerShutter() {
   if (shutterActive) return;
@@ -810,7 +906,7 @@ let prevT = performance.now();
 
 function loop() {
   if (!state.running) return;
-  if (video.currentTime !== lastVideoTime && handLandmarker) {
+  if (!cameraSwitching && video.currentTime !== lastVideoTime && handLandmarker) {
     lastVideoTime = video.currentTime;
     const w = canvas.width, h = canvas.height;
     const result = handLandmarker.detectForVideo(video, performance.now());

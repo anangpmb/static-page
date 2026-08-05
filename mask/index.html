@@ -144,6 +144,21 @@
   .snap-btn:active{ transform:scale(.9); }
   .snap-btn:focus-visible{ outline:2px solid #fff; outline-offset:3px; }
 
+  .flip-btn{
+    flex-shrink:0; width:44px; height:44px; border-radius:50%;
+    background:rgba(200,255,77,0.1); border:1px solid rgba(200,255,77,0.25);
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--ink);
+    transition:background .15s, transform .2s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .flip-btn:hover{ background:rgba(200,255,77,0.2); }
+  .flip-btn:active{ transform:scale(.9) rotate(180deg); }
+  .flip-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+  .flip-btn.spinning svg{ animation:spin-once .35s ease-out forwards; }
+  @keyframes spin-once{ to{ transform:rotate(180deg); } }
+
   /* Expandable section */
   .panel-more{
     overflow:hidden;
@@ -244,7 +259,7 @@
     <canvas id="canvas" width="960" height="720"></canvas>
 
     <div class="overlay-msg" id="startOverlay">
-      <p id="startText">Melacak jempol &amp; telunjuk kedua tanganmu, lalu memberi efek video di area poligon yang terbentuk. Butuh akses kamera.</p>
+      <p id="startText">Deteksi hingga 4 tangan (2 orang) — semua ujung jari membentuk area masking efek video. Tiap orang dapat warna polygon berbeda. Butuh akses kamera.</p>
       <button class="primary" id="startBtn">Aktifkan kamera</button>
     </div>
 
@@ -262,6 +277,7 @@
     <div class="stat">
       <span>FPS <b id="fpsVal">–</b></span>
       <span>HANDS <b id="handsVal">–</b></span>
+      <span>PEOPLE <b id="peopleVal">–</b></span>
       <span>NODES <b id="nodesVal">0</b></span>
     </div>
   </header>
@@ -298,6 +314,14 @@
             <circle cx="12" cy="13" r="4"/>
           </svg>
         </button>
+        <button class="flip-btn" id="flipBtn" aria-label="Ganti kamera depan/belakang">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 7h-9"/>
+            <path d="M14 2 9 7l5 5"/>
+            <path d="M4 17h9"/>
+            <path d="M10 22l5-5-5-5"/>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -329,7 +353,7 @@
             </svg>
             Clear
           </button>
-          <span class="hint-text">Pinch = titik · 👌 tahan = shutter</span>
+          <span class="hint-text">Pinch = titik · 👌 tahan 3s = shutter</span>
         </div>
 
       </div>
@@ -352,6 +376,7 @@ const startText    = document.getElementById('startText');
 const liveDot      = document.getElementById('liveDot');
 const fpsVal       = document.getElementById('fpsVal');
 const handsVal     = document.getElementById('handsVal');
+const peopleVal    = document.getElementById('peopleVal');
 const fxRow        = document.getElementById('fxRow');
 const toggleZone   = document.getElementById('toggleZone');
 const toggleShape  = document.getElementById('toggleShape');
@@ -368,6 +393,7 @@ const flashOverlay     = document.getElementById('flashOverlay');
 const ctrlPanel    = document.getElementById('ctrlPanel');
 const panelHandle  = document.getElementById('panelHandle');
 const panelMore    = document.getElementById('panelMore');
+const flipBtn      = document.getElementById('flipBtn');
 
 // ── Panel collapse / expand ────────────────────────────────────
 let panelOpen = false;
@@ -393,6 +419,7 @@ let state = {
   facetCell: 34,
   manualMode: false,
   manualNodes: [],
+  facingMode: 'user',
 };
 
 // ── Offscreen buffers ─────────────────────────────────────────
@@ -563,10 +590,10 @@ async function initLandmarker() {
       delegate: "GPU"
     },
     runningMode: "VIDEO",
-    numHands: 2,
-    minHandDetectionConfidence: 0.6,
-    minHandPresenceConfidence: 0.6,
-    minTrackingConfidence: 0.6,
+    numHands: 4,
+    minHandDetectionConfidence: 0.55,
+    minHandPresenceConfidence: 0.55,
+    minTrackingConfidence: 0.55,
   });
 }
 
@@ -579,7 +606,8 @@ async function startCamera() {
   startText.textContent = 'Meminta izin kamera…';
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false
+      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: state.facingMode },
+      audio: false
     });
     video.srcObject = stream;
     await video.play();
@@ -594,6 +622,39 @@ async function startCamera() {
   requestAnimationFrame(loop);
 }
 startBtn.addEventListener('click', startCamera);
+
+async function switchCamera() {
+  if (!state.running) return;
+  flipBtn.disabled = true;
+  flipBtn.classList.add('spinning');
+  setTimeout(() => flipBtn.classList.remove('spinning'), 380);
+
+  video.srcObject?.getTracks().forEach(t => t.stop());
+  video.srcObject = null;
+
+  state.facingMode = state.facingMode === 'user' ? 'environment' : 'user';
+  flipBtn.setAttribute('aria-label', state.facingMode === 'user' ? 'Ganti ke kamera belakang' : 'Ganti ke kamera depan');
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: state.facingMode },
+      audio: false
+    });
+    video.srcObject = stream;
+    await video.play();
+    sizeCanvases(video.videoWidth || 960, video.videoHeight || 720);
+  } catch {
+    // fallback: try without facingMode constraint
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      video.srcObject = stream;
+      await video.play();
+      sizeCanvases(video.videoWidth || 960, video.videoHeight || 720);
+    } catch { /* camera unavailable */ }
+  }
+  flipBtn.disabled = false;
+}
+flipBtn.addEventListener('click', switchCamera);
 
 // ── Geometry helpers ──────────────────────────────────────────
 function convexHull(points) {
@@ -621,12 +682,67 @@ function tracePolygon(pts) {
   ctx.closePath();
 }
 
+// Draw a hold-progress ring at the OK gesture midpoint
+function drawOKProgress(midpoint, progress) {
+  const [x, y] = midpoint;
+  const r = 24;
+  ctx.save();
+  // Background track
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(200,255,77,0.22)';
+  ctx.lineWidth = 3.5;
+  ctx.stroke();
+  // Filled arc proportional to hold progress
+  if (progress > 0) {
+    ctx.beginPath();
+    ctx.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
+    ctx.strokeStyle = progress >= 1 ? '#ffffff' : '#c8ff4d';
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ── Multi-person hand pairing ─────────────────────────────────
+// Per-person accent colors: green, cyan, orange, pink
+const PERSON_COLORS = ['#c8ff4d', '#4dc8ff', '#ff9f4d', '#ff6b9d'];
+
+// Greedily pair Left+Right hands by wrist proximity.
+// Returns array of pairs: each entry is [leftHand?, rightHand?]
+function pairHands(hands) {
+  const lefts  = hands.filter(h => h.handedness === 'Left');
+  const rights = hands.filter(h => h.handedness === 'Right');
+  const people  = [];
+  const usedRight = new Set();
+
+  for (const left of lefts) {
+    let bestDist = Infinity, bestRight = null;
+    for (const right of rights) {
+      if (usedRight.has(right)) continue;
+      const d = Math.hypot(left.wrist[0] - right.wrist[0], left.wrist[1] - right.wrist[1]);
+      if (d < bestDist) { bestDist = d; bestRight = right; }
+    }
+    // Only pair if wrists are within 85% of frame width of each other
+    if (bestRight && bestDist < canvas.width * 0.85) {
+      usedRight.add(bestRight);
+      people.push([left, bestRight]);
+    } else {
+      people.push([left]);
+    }
+  }
+  for (const right of rights) {
+    if (!usedRight.has(right)) people.push([right]);
+  }
+  return people;
+}
+
 // ── Gesture detection ─────────────────────────────────────────
-const gestureState = {
-  Left:  { pinch: false, ok: false, lastNodeAt: 0 },
-  Right: { pinch: false, ok: false, lastNodeAt: 0 },
-};
-const NODE_PINCH_COOLDOWN = 2000; // ms
+// Index-based state for up to 4 detected hands
+const gestureState = Array.from({ length: 4 }, () => ({ pinch: false, ok: false, lastNodeAt: 0, okStartAt: 0 }));
+const NODE_PINCH_COOLDOWN = 2000;
+const OK_HOLD_MS = 3000;
 
 function dist(a, b){ return Math.hypot(a[0]-b[0], a[1]-b[1]); }
 
@@ -694,22 +810,24 @@ function loop() {
     workCtx.drawImage(video, 0, 0, w, h);
     ctx.drawImage(workCanvas, 0, 0);
 
-    const handPts = {};
+    // ── Collect all detected hands ────────────────────────────
+    const allHands = [];
     let handCount = 0;
+
     if (result.landmarks?.length) {
       handCount = result.landmarks.length;
       result.landmarks.forEach((lm, i) => {
         const handedness = result.handedness[i]?.[0]?.categoryName || `H${i}`;
-        handPts[handedness] = {
-          thumb: [lm[4].x*w, lm[4].y*h],
-          index: [lm[8].x*w, lm[8].y*h],
-        };
+        const wrist      = [lm[0].x * w, lm[0].y * h];
+        // Thumb tip (4) + pointer/index tip (8)
+        const fingertips = [4, 8].map(fi => [lm[fi].x * w, lm[fi].y * h]);
+        allHands.push({ handedness, wrist, fingertips, lm });
 
-        if (handedness === 'Left' || handedness === 'Right') {
-          const P  = lm.map(p => [p.x*w, p.y*h]);
-          const g  = classifyHand(P);
-          const gs = gestureState[handedness];
-
+        // Gesture detection for manual mode (up to 4 hands)
+        const gs = gestureState[i];
+        if (gs) {
+          const P = lm.map(p => [p.x * w, p.y * h]);
+          const g = classifyHand(P);
           if (g.isNodePinch && !gs.pinch && state.manualMode) {
             const now = performance.now();
             if (now - gs.lastNodeAt >= NODE_PINCH_COOLDOWN) {
@@ -719,7 +837,19 @@ function loop() {
           }
           gs.pinch = g.isNodePinch;
 
-          if (g.isOK && !gs.ok) triggerShutter();
+          // OK gesture: must hold for OK_HOLD_MS before firing shutter
+          if (g.isOK) {
+            if (!gs.ok) gs.okStartAt = performance.now(); // start hold timer on first frame
+            const held = performance.now() - gs.okStartAt;
+            const progress = Math.min(held / OK_HOLD_MS, 1);
+            drawOKProgress(g.midpoint, progress);
+            if (progress >= 1 && !shutterActive) {
+              triggerShutter();
+              gs.okStartAt = performance.now(); // reset so next hold starts fresh
+            }
+          } else {
+            gs.okStartAt = 0; // released early — reset
+          }
           gs.ok = g.isOK;
         }
 
@@ -733,60 +863,84 @@ function loop() {
     }
     handsVal.textContent = handCount;
 
-    let polygon = null;
-    if (state.manualMode) {
-      if (state.manualNodes.length >= 3) polygon = state.manualNodes;
-    } else if (handPts.Left && handPts.Right) {
-      const pts = [handPts.Left.thumb, handPts.Left.index, handPts.Right.thumb, handPts.Right.index];
-      polygon = state.hullMode ? convexHull(pts)
-              : [handPts.Left.thumb, handPts.Left.index, handPts.Right.index, handPts.Right.thumb];
-    }
+    // ── Shape + Effect rendering ──────────────────────────────
+    if (!state.manualMode) {
+      // Multi-person: pair hands and render one shape per person
+      const people = pairHands(allHands);
+      peopleVal.textContent = people.length || '–';
 
-    if (polygon?.length >= 3) {
-      const effectFn = EFFECTS[state.fx];
-      if (effectFn) {
-        effectFn();
-        ctx.save();
-        if (state.effectInside) {
-          tracePolygon(polygon); ctx.clip(); ctx.drawImage(fxCanvas, 0, 0);
-        } else {
-          ctx.drawImage(fxCanvas, 0, 0);
-          tracePolygon(polygon);
-          ctx.save(); ctx.clip(); ctx.drawImage(workCanvas, 0, 0); ctx.restore();
+      people.forEach((pair, pi) => {
+        const color = PERSON_COLORS[pi % PERSON_COLORS.length];
+        // All fingertips from both hands in this pair (up to 10 points)
+        const pts = pair.flatMap(h => h.fingertips);
+        if (pts.length < 3) return;
+        const poly = state.hullMode ? convexHull(pts) : pts;
+        if (poly.length < 3) return;
+
+        const effectFn = EFFECTS[state.fx];
+        if (effectFn) {
+          effectFn();
+          ctx.save();
+          if (state.effectInside) {
+            tracePolygon(poly); ctx.clip(); ctx.drawImage(fxCanvas, 0, 0);
+          } else {
+            ctx.drawImage(fxCanvas, 0, 0);
+            tracePolygon(poly);
+            ctx.save(); ctx.clip(); ctx.drawImage(workCanvas, 0, 0); ctx.restore();
+          }
+          ctx.restore();
         }
-        ctx.restore();
+
+        if (state.showDebug) {
+          ctx.save();
+          ctx.strokeStyle = color; ctx.lineWidth = 2;
+          tracePolygon(poly); ctx.stroke();
+          ctx.restore();
+          pair.forEach(h => {
+            h.fingertips.forEach(p => {
+              ctx.fillStyle = color;
+              ctx.beginPath(); ctx.arc(p[0], p[1], 5, 0, Math.PI * 2); ctx.fill();
+            });
+          });
+        }
+      });
+
+    } else {
+      // Manual shape mode
+      peopleVal.textContent = '–';
+      if (state.manualNodes.length >= 3) {
+        const polygon  = state.manualNodes;
+        const effectFn = EFFECTS[state.fx];
+        if (effectFn) {
+          effectFn();
+          ctx.save();
+          if (state.effectInside) {
+            tracePolygon(polygon); ctx.clip(); ctx.drawImage(fxCanvas, 0, 0);
+          } else {
+            ctx.drawImage(fxCanvas, 0, 0);
+            tracePolygon(polygon);
+            ctx.save(); ctx.clip(); ctx.drawImage(workCanvas, 0, 0); ctx.restore();
+          }
+          ctx.restore();
+        }
       }
 
-      if (state.showDebug && !state.manualMode) {
+      if (state.manualNodes.length > 0) {
         ctx.save();
         ctx.strokeStyle = '#c8ff4d'; ctx.lineWidth = 2;
-        tracePolygon(polygon); ctx.stroke();
-        ctx.restore();
-        [handPts.Left, handPts.Right].forEach((h, idx) => {
-          if (!h) return;
-          ctx.fillStyle = idx === 0 ? '#ff6b57' : '#4dc8ff';
-          [h.thumb, h.index].forEach(p => {
-            ctx.beginPath(); ctx.arc(p[0],p[1], 5, 0, Math.PI*2); ctx.fill();
-          });
+        ctx.setLineDash(state.manualNodes.length < 3 ? [6,5] : []);
+        ctx.beginPath();
+        ctx.moveTo(state.manualNodes[0][0], state.manualNodes[0][1]);
+        for (let i=1; i<state.manualNodes.length; i++)
+          ctx.lineTo(state.manualNodes[i][0], state.manualNodes[i][1]);
+        if (state.manualNodes.length >= 3) ctx.closePath();
+        ctx.stroke(); ctx.setLineDash([]);
+        state.manualNodes.forEach((p, i) => {
+          ctx.fillStyle = i === state.manualNodes.length-1 ? '#ffffff' : '#c8ff4d';
+          ctx.beginPath(); ctx.arc(p[0],p[1], 6, 0, Math.PI*2); ctx.fill();
         });
+        ctx.restore();
       }
-    }
-
-    if (state.manualMode && state.manualNodes.length > 0) {
-      ctx.save();
-      ctx.strokeStyle = '#c8ff4d'; ctx.lineWidth = 2;
-      ctx.setLineDash(state.manualNodes.length < 3 ? [6,5] : []);
-      ctx.beginPath();
-      ctx.moveTo(state.manualNodes[0][0], state.manualNodes[0][1]);
-      for (let i=1; i<state.manualNodes.length; i++)
-        ctx.lineTo(state.manualNodes[i][0], state.manualNodes[i][1]);
-      if (state.manualNodes.length >= 3) ctx.closePath();
-      ctx.stroke(); ctx.setLineDash([]);
-      state.manualNodes.forEach((p, i) => {
-        ctx.fillStyle = i === state.manualNodes.length-1 ? '#ffffff' : '#c8ff4d';
-        ctx.beginPath(); ctx.arc(p[0],p[1], 6, 0, Math.PI*2); ctx.fill();
-      });
-      ctx.restore();
     }
 
     const now = performance.now();

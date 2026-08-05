@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Privacy Policy – TravTrack</title>
+  <title>Privacy Policy – KeepTrip</title>
   <style>
     :root {
       --accent: #db9f5c;
@@ -12,13 +11,7 @@
       --text: #e0e0e0;
       --muted: #9090a8;
     }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       background: var(--bg);
       color: var(--text);
@@ -27,106 +20,110 @@
       line-height: 1.7;
       padding: 24px 20px 60px;
     }
-
-    header {
-      margin-bottom: 32px;
-    }
-
-    .logo {
-      font-size: 40px;
-    }
-
-    h1 {
-      font-size: 24px;
-      font-weight: 700;
-      color: #fff;
-      margin: 8px 0 4px;
-    }
-
-    .updated {
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    h2 {
-      color: var(--accent);
-      font-size: 17px;
-      font-weight: 600;
-      margin: 28px 0 10px;
-    }
-
-    p,
-    li {
-      color: var(--text);
-      margin-bottom: 10px;
-    }
-
-    ul {
-      padding-left: 20px;
-    }
-
+    header { margin-bottom: 32px; }
+    .logo { font-size: 40px; }
+    h1 { font-size: 24px; font-weight: 700; color: #fff; margin: 8px 0 4px; }
+    .updated { color: var(--muted); font-size: 13px; }
+    h2 { color: var(--accent); font-size: 17px; font-weight: 600; margin: 28px 0 10px; }
+    p, li { color: var(--text); margin-bottom: 10px; }
+    ul { padding-left: 20px; }
     .card {
       background: #252536;
       border-radius: 16px;
       padding: 20px;
       margin: 16px 0;
-      border: 1px solid rgba(219, 159, 92, 0.15);
+      border: 1px solid rgba(219,159,92,0.15);
     }
-
-    .highlight {
-      color: var(--accent);
-      font-weight: 600;
-    }
+    .highlight { color: var(--accent); font-weight: 600; }
   </style>
 </head>
-
 <body>
   <header>
     <div class="logo">✈️</div>
     <h1>Privacy Policy</h1>
-    <p class="updated">Last updated: January 1, 2025</p>
+    <p class="updated">Last updated: July 24, 2026</p>
   </header>
 
   <div class="card">
-    <p><span class="highlight">TravTrack is fully offline.</span> Your data lives only on your device. We do not
-      collect, store, or transmit your personal expense data to any server.</p>
+    <p><span class="highlight">Your trip data stays on your device.</span> Expense records, budgets, and notes are stored locally and never sent to our servers. Optional AI features require a network connection and process only what you explicitly submit.</p>
   </div>
 
   <h2>1. Information We Collect</h2>
-  <p>TravTrack stores the following data <strong>locally on your device only</strong>:</p>
+  <p>KeepTrip stores the following data <strong>locally on your device only</strong>:</p>
   <ul>
     <li>Trip names, destinations, and dates</li>
     <li>Expense amounts, categories, and notes</li>
     <li>Budget settings and currency preferences</li>
   </ul>
-  <p>This data never leaves your device unless you explicitly use the Export feature.</p>
+  <p>This data never leaves your device unless you explicitly use the Export feature or opt-in to AI features (see Section 3).</p>
 
   <h2>2. Currency Exchange Rates</h2>
-  <p>To provide real-time exchange rates, the app makes anonymous requests to the <strong>open.er-api.com</strong> API.
-    No personal data is sent — only the currency code you request. These requests are also cached locally so you can use
-    the app fully offline.</p>
+  <p>To provide real-time exchange rates, the app makes anonymous requests to the <strong>open.er-api.com</strong> API. No personal data is sent — only the currency code you request. These requests are also cached locally so you can use the app fully offline.</p>
 
-  <h2>2. Advertising</h2>
-  <p>The free version of TravTrack may display advertisements provided by Google AdMob. AdMob may collect device
-    identifiers and usage data in accordance with <a href="https://policies.google.com/privacy"
-      style="color:var(--accent)">Google's Privacy Policy</a>. You can remove all ads by upgrading to TravTrack Pro.</p>
+  <h2>3. AI Features &amp; Device Identifier</h2>
+  <p>KeepTrip offers optional AI-powered features (itinerary generation, receipt scanning, and photo itinerary import). When you use these features:</p>
+  <ul>
+    <li><strong>Content you submit</strong> — receipt images, destination names, and travel preferences are sent to our secure backend (Supabase) and processed by Google Gemini API to generate results. This content is used solely to produce the AI response and is not retained or used for profiling.</li>
+    <li><strong>Credit balance</strong> — your usage is tracked server-side against a credit balance linked to a device identifier (see below) to enforce the fair-use daily limit.</li>
+  </ul>
 
-  <h2>3. In-App Purchases</h2>
-  <p>Purchase transactions are processed entirely by Apple App Store or Google Play. TravTrack does not process or store
-    any payment information.</p>
+  <div class="card">
+    <p><strong>Device Identifier (Android)</strong></p>
+    <p>On Android, we use the <strong>Android ID</strong> — a system-generated identifier provided by Android — to manage your AI credit balance and prevent fraudulent creation of multiple free accounts. This falls under <em>fraud prevention</em>, one of the explicitly permitted uses of Android ID under Google's developer guidelines.</p>
+    <p style="margin-top:12px">Key privacy points:</p>
+    <ul style="margin-top:8px">
+      <li>No special permission is required to read Android ID.</li>
+      <li>It is <strong>scoped to this app and its signing key</strong> — other apps see a different value for the same device.</li>
+      <li>It is <strong>not used for advertising</strong> — advertising uses the separate, user-resettable Advertising ID.</li>
+      <li>It is <strong>not shared with third parties</strong> — stored only in our Supabase database for account management.</li>
+      <li>It cannot be used to identify you personally.</li>
+    </ul>
+  </div>
 
-  <h2>4. Data Export</h2>
-  <p>You can export your data as a JSON file at any time via Settings → Export Backup. You are responsible for the
-    security of exported files.</p>
+  <div class="card">
+    <p><strong>Device Identifier (iOS &amp; other platforms)</strong></p>
+    <p>On iOS and other platforms, a randomly generated UUID is stored locally on your device and used for the same account-management purpose. This ID is not linked to any hardware identifier.</p>
+  </div>
 
-  <h2>5. Children's Privacy</h2>
-  <p>TravTrack is not directed at children under 13. We do not knowingly collect data from children.</p>
+  <h2>4. Advertising</h2>
+  <p>The free version of KeepTrip may display advertisements provided by Google AdMob. AdMob may collect device identifiers and usage data in accordance with <a href="https://policies.google.com/privacy" style="color:var(--accent)">Google's Privacy Policy</a>. You can remove all ads by upgrading to KeepTrip Pro.</p>
 
-  <h2>6. Changes</h2>
+  <h2>5. In-App Purchases</h2>
+  <p>Purchase transactions are processed entirely by Apple App Store or Google Play. KeepTrip does not process or store any payment information. If you purchase AI credits or a Pro subscription, a purchase token is verified with our backend to credit your account — no payment details are transmitted or stored by us.</p>
+
+  <h2>6. Data Export</h2>
+  <p>You can export your data as a JSON file at any time via Settings → Export Backup. You are responsible for the security of exported files.</p>
+
+  <h2>7. Children's Privacy</h2>
+  <p>KeepTrip is not directed at children under 13. We do not knowingly collect data from children.</p>
+
+  <h2>8. Third-Party Image Content</h2>
+  <p>Landmark and destination images displayed in the App are sourced from multiple third-party providers. No personal data is collected or shared through image loading. The sources and their applicable licenses are described below.</p>
+
+  <div class="card">
+    <p><strong>Unsplash</strong> — <a href="https://unsplash.com" style="color:var(--accent)">unsplash.com</a></p>
+    <p>The majority of landmark images are sourced from Unsplash under the <strong>Unsplash License</strong>, which grants free, worldwide permission to use images for commercial and non-commercial purposes without requiring attribution. Images may not be sold as unmodified standalone copies. See <a href="https://unsplash.com/license" style="color:var(--accent)">unsplash.com/license</a> for full terms.</p>
+  </div>
+
+  <div class="card">
+    <p><strong>Wikimedia Commons</strong> — <a href="https://commons.wikimedia.org" style="color:var(--accent)">commons.wikimedia.org</a></p>
+    <p>Some images are sourced from Wikimedia Commons. These images are individually licensed under <strong>Creative Commons</strong> (CC BY, CC BY-SA, or similar) or are in the <strong>Public Domain</strong>. Each image retains its original license as indicated on its Wikimedia page. Where a Creative Commons license applies, attribution to the original author is required. See <a href="https://creativecommons.org/licenses/" style="color:var(--accent)">creativecommons.org/licenses</a> for details.</p>
+  </div>
+
+  <div class="card">
+    <p><strong>Google Maps User Photos</strong> — <a href="https://policies.google.com/terms" style="color:var(--accent)">policies.google.com/terms</a></p>
+    <p>Certain images are hosted by Google and originate from Google Maps user-contributed photos. These images are subject to <strong>Google's Terms of Service</strong> and the individual contributor's rights. Use of these images is for display purposes only within the app. See <a href="https://policies.google.com/terms" style="color:var(--accent)">Google Terms of Service</a> for details.</p>
+  </div>
+
+  <div class="card">
+    <p><strong>Other Third-Party Sources</strong></p>
+    <p>A small number of images are displayed directly from third-party websites (including travel blogs and international organization portals). These images remain the property of their respective copyright holders. They are loaded at runtime from their original URLs and are not stored or redistributed by the App. If you are a copyright holder and believe your image is being used without proper authorization, please contact us at <span class="highlight">secretbaseprimary@gmail.com</span> and we will promptly replace or remove the image.</p>
+  </div>
+
+  <h2>9. Changes</h2>
   <p>We may update this policy and will notify you via app update notes.</p>
 
-  <h2>7. Contact</h2>
+  <h2>10. Contact</h2>
   <p>Questions? Email us at <span class="highlight">secretbaseprimary@gmail.com</span></p>
 </body>
-
 </html>

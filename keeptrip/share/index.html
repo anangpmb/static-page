@@ -218,7 +218,7 @@ const CONFIG = {
 <div class="container" id="app">
   <div class="state-box">
     <div class="state-icon">⏳</div>
-    <div class="state-title">Memuat data...</div>
+    <div class="state-title">Loading...</div>
   </div>
 </div>
 
@@ -240,8 +240,8 @@ function fmt(amount, currency) {
 }
 
 function statusLabel(s) {
-  return { requested: 'Belum dibeli', bought: 'Sudah dibeli',
-           handedOver: 'Sudah diberikan', settled: 'Lunas' }[s] ?? s;
+  return { requested: 'Not bought', bought: 'Bought',
+           handedOver: 'Handed over', settled: 'Settled' }[s] ?? s;
 }
 function statusClass(s) {
   return `status status-${s}`;
@@ -250,9 +250,9 @@ function statusClass(s) {
 function timeAgo(iso) {
   if (!iso) return '';
   const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
-  if (diff < 60) return `${diff}d yang lalu`;
-  if (diff < 3600) return `${Math.floor(diff/60)}m yang lalu`;
-  if (diff < 86400) return `${Math.floor(diff/3600)}j yang lalu`;
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
   return new Date(iso).toLocaleDateString('id-ID');
 }
 
@@ -282,7 +282,7 @@ function renderSplitBill(data) {
   let html = `
     <div class="trip-hero">
       <div class="trip-name">💰 ${esc(data.trip_name ?? '—')}</div>
-      <div class="trip-meta">Split Bill · Diperbarui ${timeAgo(updatedAt)}</div>
+      <div class="trip-meta">Split Bill · Updated ${timeAgo(updatedAt)}</div>
     </div>`;
 
   // Settlements
@@ -305,7 +305,7 @@ function renderSplitBill(data) {
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
             <div class="settlement-amount">${fmt(s.amount, s.currency ?? currency)}</div>
-            <span class="${s.resolved ? 'badge badge-paid' : 'badge badge-unpaid'}">${s.resolved ? 'Lunas' : 'Belum'}</span>
+            <span class="${s.resolved ? 'badge badge-paid' : 'badge badge-unpaid'}">${s.resolved ? 'Paid' : 'Unpaid'}</span>
           </div>
         </div>`;
     }
@@ -319,7 +319,7 @@ function renderSplitBill(data) {
       <div class="card">
         <div class="card-header">
           <span class="card-icon">⚖️</span>
-          <span class="card-title">Saldo Bersih</span>
+          <span class="card-title">Net Balance</span>
         </div>`;
     for (const name of balKeys) {
       const val = balances[name];
@@ -340,7 +340,7 @@ function renderSplitBill(data) {
       <div class="card">
         <div class="card-header">
           <span class="card-icon">🧾</span>
-          <span class="card-title">Pengeluaran</span>
+          <span class="card-title">Expenses</span>
           <span class="card-count">${expenses.length}</span>
         </div>`;
     for (const e of expenses) {
@@ -352,7 +352,7 @@ function renderSplitBill(data) {
             <div class="expense-amount">${fmt(e.amount, e.currency ?? currency)}</div>
           </div>
           <div class="expense-meta">
-            Dibayar ${esc(e.paid_by)} · Split ${e.split_mode ?? 'equal'} · ${esc(sharedWith)}
+            Paid by ${esc(e.paid_by)} · Split ${e.split_mode ?? 'equal'} · ${esc(sharedWith)}
           </div>
         </div>`;
     }
@@ -371,7 +371,7 @@ function renderJastip(data) {
   let html = `
     <div class="trip-hero">
       <div class="trip-name">🎁 ${esc(data.trip_name ?? '—')}</div>
-      <div class="trip-meta">Jastip · Diperbarui ${timeAgo(updatedAt)}</div>
+      <div class="trip-meta">Jastip · Updated ${timeAgo(updatedAt)}</div>
     </div>`;
 
   // Receivables
@@ -381,7 +381,7 @@ function renderJastip(data) {
       <div class="card">
         <div class="card-header">
           <span class="card-icon">💵</span>
-          <span class="card-title">Tagihan per Orang</span>
+          <span class="card-title">Bill per Person</span>
           <span class="card-count">${fmt(total, masterCurrency)}</span>
         </div>`;
     for (const r of receivables) {
@@ -390,7 +390,7 @@ function renderJastip(data) {
           <div class="avatar">${esc(r.requester_avatar ?? '🎁')}</div>
           <div class="receivable-info">
             <div class="receivable-name">${esc(r.requester_name)}</div>
-            <div class="receivable-sub">${r.item_count ?? 0} item · ${r.to_buy_count ?? 0} belum dibeli · ${r.settled_count ?? 0} lunas</div>
+            <div class="receivable-sub">${r.item_count ?? 0} items · ${r.to_buy_count ?? 0} to buy · ${r.settled_count ?? 0} settled</div>
           </div>
           <div class="receivable-amount">${fmt(r.owed, r.currency ?? masterCurrency)}</div>
         </div>`;
@@ -453,8 +453,8 @@ function showError(msg) {
   app.innerHTML = `
     <div class="state-box">
       <div class="state-icon">😕</div>
-      <div class="state-title">Link tidak ditemukan</div>
-      <div class="state-text">${esc(msg)}<br><br>Link mungkin sudah kadaluarsa (3 hari) atau ID tidak valid.</div>
+      <div class="state-title">Link not found</div>
+      <div class="state-text">${esc(msg)}<br><br>Link may have expired (3 days) or the ID is invalid.</div>
     </div>`;
 }
 
@@ -485,7 +485,7 @@ async function refresh() {
       if (session.type === 'split_bill') html = renderSplitBill(data);
       else if (session.type === 'jastip') html = renderJastip(data);
       else html = `<pre style="padding:20px;overflow:auto">${esc(JSON.stringify(data, null, 2))}</pre>`;
-      html += `<div class="footer">KeepTrip · Data diperbarui ${timeAgo(session.updated_at)} · <a href="https://keeptrip.app" style="color:var(--accent)">keeptrip.app</a></div>`;
+      html += `<div class="footer">KeepTrip · Updated ${timeAgo(session.updated_at)} · <a href="https://keeptrip.app" style="color:var(--accent)">keeptrip.app</a></div>`;
       app.innerHTML = html;
     }
 

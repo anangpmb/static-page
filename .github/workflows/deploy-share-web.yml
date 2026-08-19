@@ -1,10 +1,8 @@
-name: Deploy share-web
+name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'share-web/**'
 
 permissions:
   contents: read
@@ -24,18 +22,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Inject secrets into config
+      - name: Inject Supabase secrets
         run: |
           sed -i \
             -e "s|__SUPABASE_URL__|${{ secrets.SUPABASE_URL }}|g" \
             -e "s|__SUPABASE_ANON_KEY__|${{ secrets.SUPABASE_ANON_KEY }}|g" \
-            share-web/index.html
+            keeptrip/share/index.html
 
       - uses: actions/configure-pages@v4
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: share-web
+          path: .
 
       - id: deployment
         uses: actions/deploy-pages@v4

@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TravTrack – Trip Detail (Summary Tab)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Reset & base ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #D8D8DC;
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px;
+      gap: 20px;
+    }
+    h1.page-title {
+      font-size: 13px; font-weight: 600; color: #888;
+      letter-spacing: .5px; text-transform: uppercase;
+    }
+
+    /* ─── App colors ───────────────────────────────────────────────────── */
+    :root {
+      --accent:   #DB9F5C;
+      --accent-bg: rgba(219,159,92,.12);
+      --success:  #4CAF82;
+      --warning:  #E8A54C;
+      --error:    #E05C5C;
+      --bg:       #EEEEF0;
+      --card:     #F0F0F2;
+      --divider:  #E2E2E6;
+      --text:     #1C1C2A;
+      --sub:      #8A8A9A;
+      --tertiary: #B4B4C0;
+      --shadow:   rgba(0,0,0,.06);
+      /* donut palette */
+      --c1: #DB9F5C; --c2: #BB45F1; --c3: #6AADE8; --c4: #66BB8A; --c5: #E07070;
+    }
+
+    /* ─── Phone frame ──────────────────────────────────────────────────── */
+    .phone {
+      width: 390px; height: 844px;
+      background: #EEEEF0;
+      border-radius: 48px;
+      box-shadow: 0 0 0 10px #1a1a1a, 0 0 0 12px #3a3a3a, 0 30px 80px rgba(0,0,0,.45);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      position: relative;
+    }
+    .phone::before {
+      content: '';
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 34px; background: #1a1a1a; border-radius: 20px; z-index: 100;
+    }
+
+    /* NeoContainer / NeuCard */
+    .neo {
+      background: var(--card);
+      border-radius: 20px;
+      box-shadow: 0 1px 3px var(--shadow), 0 4px 12px var(--shadow);
+    }
+
+    .status-bar { height: 54px; background: var(--bg); flex-shrink: 0; }
+
+    /* ─── TopBar ────────────────────────────────────────────────────────── */
+    .top-bar {
+      background: var(--bg); padding: 12px 20px 14px;
+      display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    }
+    .top-bar .icon-btn {
+      width: 38px; height: 38px; border-radius: 14px; background: var(--card);
+      box-shadow: 0 1px 4px var(--shadow);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer;
+    }
+    .top-bar .icon-btn svg { width: 18px; height: 18px; color: var(--text); }
+    .trip-info { flex: 1; min-width: 0; }
+    .trip-name {
+      font-size: 15px; font-weight: 800; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .trip-name .emoji { font-size: 16px; }
+    .trip-meta { font-size: 11px; color: var(--sub); margin-top: 2px; display: flex; align-items: center; gap: 3px; }
+    .top-bar .right-btns { display: flex; gap: 8px; flex-shrink: 0; }
+
+    /* ─── TripTabBar (5 tabs) ─────────────────────────────────────────────── */
+    .tab-bar {
+      height: 54px; background: var(--bg); display: flex;
+      border-bottom: 1px solid var(--divider); flex-shrink: 0;
+    }
+    .tab-item {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 3px;
+      cursor: pointer; position: relative; color: var(--sub); transition: color .15s;
+    }
+    .tab-item.active { color: var(--accent); }
+    .tab-item.active::after {
+      content: ''; position: absolute; bottom: 0; left: 10%; right: 10%;
+      height: 2.5px; background: var(--accent); border-radius: 2px 2px 0 0;
+    }
+    .tab-item svg { width: 18px; height: 18px; }
+    .tab-label { font-size: 10px; font-weight: 700; }
+
+    /* ─── Scroll body ─────────────────────────────────────────────────────── */
+    .summary-scroll {
+      flex: 1; overflow-y: auto;
+      padding: 16px 16px 100px;
+      display: flex; flex-direction: column;
+      background: var(--bg);
+    }
+    .summary-scroll::-webkit-scrollbar { width: 4px; }
+    .summary-scroll::-webkit-scrollbar-thumb { background: var(--divider); border-radius: 4px; }
+
+    .gap-12 { height: 12px; flex-shrink: 0; }
+
+    /* section title */
+    .titleSmall { font-size: 14px; font-weight: 700; color: var(--text); }
+    .labelSmall { font-size: 11px; font-weight: 600; color: var(--sub); }
+
+    /* ─── Budget card ─────────────────────────────────────────────────────── */
+    .card-pad { padding: 16px; }
+    .budget-head { display: flex; align-items: center; justify-content: space-between; }
+    .pct-badge {
+      padding: 3px 8px; border-radius: 20px;
+      font-size: 12px; font-weight: 700;
+    }
+    .budget-amounts { display: flex; align-items: baseline; margin-top: 8px; }
+    .budget-spent { font-size: 16px; font-weight: 800; color: var(--accent); }
+    .budget-total { font-size: 13px; color: var(--sub); }
+    .progress {
+      height: 7px; border-radius: 6px; background: var(--divider);
+      margin-top: 10px; overflow: hidden;
+    }
+    .progress > span { display: block; height: 100%; border-radius: 6px; }
+
+    /* ─── Ad slot ───────────────────────────────────────────────────────── */
+    .ad-slot {
+      margin: 12px 0; height: 56px;
+      border: 1px dashed var(--tertiary); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      color: var(--tertiary); font-size: 12px; font-weight: 600;
+      background: rgba(180,180,192,.06);
+    }
+    .ad-slot .ad-tag {
+      font-size: 9px; font-weight: 700; letter-spacing: .5px;
+      border: 1px solid var(--tertiary); border-radius: 4px; padding: 1px 4px;
+    }
+
+    /* ─── Daily avg + Durations row ───────────────────────────────────────── */
+    .stat-row { display: flex; gap: 10px; margin-bottom: 12px; }
+    .stat-row .neo { flex: 1; padding: 16px; }
+    .stat-label { font-size: 11px; font-weight: 600; color: var(--sub); }
+    .stat-value { font-size: 18px; font-weight: 800; margin-top: 6px; }
+    .stat-value.accent { color: var(--accent); }
+
+    /* ─── Collapsible header (chevron) ────────────────────────────────────── */
+    .collapse-head {
+      display: flex; align-items: center; cursor: pointer;
+    }
+    .chev {
+      margin-left: auto; color: var(--sub);
+      transition: transform .2s; font-size: 18px; line-height: 1;
+    }
+    .chev.up { transform: rotate(180deg); }
+    .collapse-body { overflow: hidden; transition: max-height .25s ease, opacity .2s ease; }
+    .collapse-body.closed { max-height: 0; opacity: 0; }
+    .collapse-body.open { max-height: 600px; opacity: 1; }
+
+    /* ─── Savings insight card ────────────────────────────────────────────── */
+    .savings-head { display: flex; align-items: center; gap: 8px; }
+    .savings-head svg { width: 20px; height: 20px; }
+    .savings-amount { font-size: 16px; font-weight: 800; margin-top: 4px; }
+    .savings-detail { font-size: 12px; color: rgba(28,28,42,.7); line-height: 1.4; }
+    .savings-detail .hl-green { color: var(--success); font-weight: 700; }
+    .goal-row { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
+    .goal-tier { font-size: 12px; font-weight: 700; color: var(--text); }
+    .goal-target { font-size: 11px; color: var(--sub); margin-left: auto; }
+    .delta-list { margin-top: 12px; }
+    .delta-title { font-size: 12px; font-weight: 600; color: var(--sub); margin-bottom: 4px; }
+    .delta-item { display: flex; align-items: center; gap: 6px; padding: 2px 0; font-size: 13px; }
+    .delta-item .di-label { flex: 1; color: var(--text); }
+    .delta-item .di-amt { font-size: 12px; font-weight: 700; }
+
+    /* ─── Where it went / donut ───────────────────────────────────────────── */
+    .donut-row { display: flex; align-items: center; gap: 20px; }
+    .donut {
+      width: 150px; height: 150px; border-radius: 50%; flex-shrink: 0;
+      position: relative;
+      background: conic-gradient(
+        var(--c1) 0% 35%,
+        var(--c2) 35% 63%,
+        var(--c3) 63% 81%,
+        var(--c4) 81% 93%,
+        var(--c5) 93% 100%
+      );
+      /* segment gaps */
+      -webkit-mask: radial-gradient(circle 45px at center, transparent 44px, #000 45px);
+              mask: radial-gradient(circle 45px at center, transparent 44px, #000 45px);
+    }
+    .donut-center {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      pointer-events: none;
+    }
+    .donut-center .dc-label { font-size: 10px; font-weight: 600; color: rgba(28,28,42,.55); }
+    .donut-center .dc-total { font-size: 15px; font-weight: 800; color: var(--text); margin-top: 2px; }
+    .legend { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+    .legend-row { display: flex; align-items: center; gap: 12px; }
+    .legend-ico {
+      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 15px;
+    }
+    .legend-label { flex: 1; font-size: 14px; font-weight: 600; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .legend-pct { font-size: 14px; font-weight: 800; }
+
+    .wiw-head { display: flex; align-items: center; margin-top: 16px; cursor: pointer; }
+    .pattern-item { display: flex; align-items: flex-start; gap: 10px; margin-top: 10px; }
+    .pattern-item svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+    .pattern-item .pt-text { font-size: 13px; line-height: 1.35; color: var(--text); }
+    .divider-line { height: 1px; background: var(--divider); }
+
+    /* ─── Itinerary insight card ──────────────────────────────────────────── */
+    .itin-head { display: flex; align-items: center; gap: 8px; }
+    .itin-head svg { width: 16px; height: 16px; color: var(--accent); }
+    .metrics { display: flex; align-items: stretch; margin-top: 14px; }
+    .metric { flex: 1; }
+    .metric .m-label { font-size: 11px; font-weight: 600; color: var(--sub); }
+    .metric .m-value { font-size: 18px; font-weight: 800; color: var(--accent); margin-top: 6px; }
+    .v-div { width: 1px; background: var(--divider); margin: 0 12px; }
+    .punc-head { display: flex; align-items: center; margin-top: 12px; cursor: pointer; }
+    .breakdown { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 10px; }
+    .bd-item { display: flex; align-items: center; gap: 6px; }
+    .bd-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .bd-count { font-size: 13px; font-weight: 800; color: var(--text); }
+    .bd-label { font-size: 12px; color: var(--sub); }
+    .nudge { display: flex; align-items: flex-start; gap: 6px; margin-top: 12px; }
+    .nudge svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; }
+    .nudge .nudge-text { font-size: 12px; line-height: 1.3; color: var(--sub); }
+
+    /* ─── Recent transactions ─────────────────────────────────────────────── */
+    .recent-title { margin: 20px 0 8px; }
+    .expense-tile {
+      background: var(--card); border-radius: 16px;
+      box-shadow: 0 1px 3px var(--shadow), 0 3px 8px var(--shadow);
+      padding: 14px; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 12px; cursor: pointer;
+    }
+    .exp-ico {
+      width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+      background: var(--accent-bg);
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .exp-mid { flex: 1; min-width: 0; }
+    .exp-title { font-size: 14px; font-weight: 700; color: var(--text); }
+    .exp-sub { font-size: 12px; color: var(--sub); margin-top: 2px; }
+    .exp-right { text-align: right; }
+    .exp-amt { font-size: 14px; font-weight: 700; color: var(--accent); }
+    .exp-conv { font-size: 11px; color: var(--sub); }
+    .exp-more { color: var(--tertiary); font-size: 14px; }
+
+    /* ─── FAB ─────────────────────────────────────────────────────────────── */
+    .fab {
+      position: absolute; bottom: 28px; right: 24px;
+      width: 56px; height: 56px; border-radius: 18px; background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 20px rgba(219,159,92,.50); cursor: pointer; z-index: 10;
+    }
+    .fab svg { width: 28px; height: 28px; color: #fff; }
+  </style>
+</head>
+<body>
+
+  <h1 class="page-title">TravTrack · Trip Detail · Summary Tab</h1>
+
+  <div class="phone">
+
+    <div class="status-bar"></div>
+
+    <!-- ── TopBar ───────────────────────────────────────────────────────── -->
+    <div class="top-bar">
+      <div class="icon-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </div>
+      <div class="trip-info">
+        <div class="trip-name"><span class="emoji">🗼</span><span>Tokyo Adventure</span></div>
+        <div class="trip-meta">
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="var(--sub)">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5 14.5 7.62 14.5 9 13.38 11.5 12 11.5z"/>
+          </svg>
+          Tokyo, Japan · Mar 15 – Mar 22, 2025
+        </div>
+      </div>
+      <div class="right-btns">
+        <div class="icon-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <div class="icon-btn">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TripTabBar (Summary active) ──────────────────────────────────── -->
+    <div class="tab-bar">
+      <div class="tab-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg><span class="tab-label">Summary</span>
+      </div>
+      <div class="tab-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/>
+        </svg><span class="tab-label">Expenses</span>
+      </div>
+      <div class="tab-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg><span class="tab-label">Itinerary</span>
+      </div>
+      <div class="tab-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 4H3v16h18V4z"/><path d="M9 9h6M9 13h4"/>
+          <path d="M3 9h2M3 13h2M3 17h2M19 9h2M19 13h2M19 17h2"/>
+        </svg><span class="tab-label">Budget</span>
+      </div>
+      <div class="tab-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/>
+          <path d="M12 7H7.5a2.5 2.5 0 110-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 100-5C13 2 12 7 12 7z"/>
+        </svg><span class="tab-label">Jastip</span>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         SUMMARY BODY
+         ════════════════════════════════════════════════════════════════════ -->
+    <div class="summary-scroll">
+
+      <!-- ── Budget card ──────────────────────────────────────────────────── -->
+      <div class="neo card-pad">
+        <div class="budget-head">
+          <span class="titleSmall">Budget</span>
+          <span class="pct-badge" style="background:rgba(76,175,130,.12); color:var(--success);">68% used</span>
+        </div>
+        <div class="budget-amounts">
+          <span class="budget-spent">¥340,000</span>
+          <span class="budget-total">&nbsp;/ ¥500,000</span>
+        </div>
+        <div class="progress"><span style="width:68%; background:var(--success);"></span></div>
+      </div>
+
+      <!-- ── Ad slot ──────────────────────────────────────────────────────── -->
+      <div class="ad-slot"><span class="ad-tag">AD</span> Sponsored banner</div>
+
+      <!-- ── Daily avg + Durations ────────────────────────────────────────── -->
+      <div class="stat-row">
+        <div class="neo">
+          <div class="stat-label">Daily average</div>
+          <div class="stat-value accent">¥42,500</div>
+        </div>
+        <div class="neo">
+          <div class="stat-label">Durations</div>
+          <div class="stat-value">8 days</div>
+        </div>
+      </div>
+
+      <!-- ── Savings insight card (collapsible) ───────────────────────────── -->
+      <div class="neo card-pad">
+        <div class="collapse-head" onclick="toggle('savings')">
+          <div style="flex:1">
+            <div class="savings-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/>
+                <path d="M2 9v1c0 1.1.9 2 2 2h1"/><path d="M16 11h0"/>
+              </svg>
+              <span class="titleSmall">Savings so far</span>
+              <span class="chev" id="chev-savings">⌄</span>
+            </div>
+            <div class="savings-amount" style="color:var(--success);">Rp 1,250,000</div>
+          </div>
+        </div>
+        <div class="collapse-body closed" id="body-savings">
+          <div style="height:10px"></div>
+          <div class="savings-detail">At <b>Rp 55,000</b>/day pace over 6 of 8 days</div>
+          <div class="savings-detail" style="margin-top:4px;">You're set to finish <span class="hl-green">Rp 90,000</span> under budget (Rp 410,000 projected).</div>
+
+          <!-- goal row -->
+          <div class="goal-row">
+            <span style="font-size:16px;">🥈</span>
+            <span class="goal-tier">Silver · 62% of goal</span>
+            <span class="goal-target">Goal: ¥300,000</span>
+          </div>
+          <div class="progress" style="margin-top:6px; height:6px;"><span style="width:62%; background:#9FA6B2;"></span></div>
+
+          <!-- top saving categories -->
+          <div class="delta-list">
+            <div class="delta-title">Top categories you're saving on</div>
+            <div class="delta-item"><span>🚃</span><span class="di-label">Transport</span><span class="di-amt" style="color:var(--success);">Rp 120,000</span></div>
+            <div class="delta-item"><span>🏨</span><span class="di-label">Lodging</span><span class="di-amt" style="color:var(--success);">Rp 85,000</span></div>
+          </div>
+          <div class="delta-list" style="margin-top:8px;">
+            <div class="delta-title">Top categories over budget</div>
+            <div class="delta-item"><span>🛍️</span><span class="di-label">Shopping</span><span class="di-amt" style="color:var(--error);">Rp 60,000</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gap-12"></div>
+
+      <!-- ── Where it went card (donut + patterns) ────────────────────────── -->
+      <div class="neo card-pad">
+        <!-- donut chart -->
+        <div class="donut-row">
+          <div class="donut">
+            <div class="donut-center">
+              <div class="dc-label">Total Spent</div>
+              <div class="dc-total">JPY 340k</div>
+            </div>
+          </div>
+          <div class="legend">
+            <div class="legend-row">
+              <div class="legend-ico" style="background:rgba(219,159,92,.15);">🍜</div>
+              <span class="legend-label">Food &amp; Dining</span>
+              <span class="legend-pct" style="color:var(--c1);">35%</span>
+            </div>
+            <div class="legend-row">
+              <div class="legend-ico" style="background:rgba(187,69,241,.15);">🛍️</div>
+              <span class="legend-label">Shopping</span>
+              <span class="legend-pct" style="color:var(--c2);">28%</span>
+            </div>
+            <div class="legend-row">
+              <div class="legend-ico" style="background:rgba(106,173,232,.15);">🚃</div>
+              <span class="legend-label">Transport</span>
+              <span class="legend-pct" style="color:var(--c3);">18%</span>
+            </div>
+            <div class="legend-row">
+              <div class="legend-ico" style="background:rgba(102,187,138,.15);">🎡</div>
+              <span class="legend-label">Activities</span>
+              <span class="legend-pct" style="color:var(--c4);">12%</span>
+            </div>
+            <div class="legend-row">
+              <div class="legend-ico" style="background:rgba(224,112,112,.15);">📦</div>
+              <span class="legend-label">Other</span>
+              <span class="legend-pct" style="color:var(--c5);">7%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- "Where it went" collapsible patterns -->
+        <div class="wiw-head" onclick="toggle('wiw')">
+          <span class="titleSmall">Where it went</span>
+          <span class="chev" id="chev-wiw">⌄</span>
+        </div>
+        <div class="collapse-body closed" id="body-wiw">
+          <div style="height:14px"></div>
+          <div class="divider-line"></div>
+          <div style="height:12px"></div>
+          <div class="pattern-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            <span class="pt-text">Your spending picked up in the second half of the trip.</span>
+          </div>
+          <div class="pattern-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 118 2.83"/><path d="M22 12A10 10 0 0012 2v10z"/></svg>
+            <span class="pt-text">Food &amp; Dining is your biggest category at 35% of spend.</span>
+          </div>
+          <div class="pattern-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v7a1 1 0 01-1 1H5a1 1 0 01-1-1v-7"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 110-5C11 2 12 7 12 7z"/></svg>
+            <span class="pt-text">A single ¥12,000 purchase stands out on Mar 19.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="gap-12"></div>
+
+      <!-- ── Itinerary insight card ───────────────────────────────────────── -->
+      <div class="neo card-pad">
+        <div class="itin-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>
+          </svg>
+          <span class="titleSmall">Itinerary</span>
+        </div>
+        <div class="metrics">
+          <div class="metric">
+            <div class="m-label">Total distance</div>
+            <div class="m-value">42.3 km</div>
+          </div>
+          <div class="v-div"></div>
+          <div class="metric">
+            <div class="m-label">Activities</div>
+            <div class="m-value">8</div>
+          </div>
+        </div>
+        <div style="height:14px"></div>
+        <div class="divider-line"></div>
+        <div class="punc-head" onclick="toggle('punc')">
+          <span class="labelSmall">Punctuality</span>
+          <span class="chev" id="chev-punc">⌄</span>
+        </div>
+        <div class="collapse-body closed" id="body-punc">
+          <div class="breakdown">
+            <div class="bd-item"><span class="bd-dot" style="background:var(--success);"></span><span class="bd-count">5</span><span class="bd-label">On time</span></div>
+            <div class="bd-item"><span class="bd-dot" style="background:var(--accent);"></span><span class="bd-count">2</span><span class="bd-label">Early</span></div>
+            <div class="bd-item"><span class="bd-dot" style="background:var(--error);"></span><span class="bd-count">1</span><span class="bd-label">Late</span></div>
+          </div>
+          <div class="nudge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M8.21 13.89L7 22l5-3 5 3-1.21-8.11"/></svg>
+            <span class="nudge-text">Great pacing — you checked in on time for most activities!</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Recent transactions ──────────────────────────────────────────── -->
+      <div class="titleSmall recent-title">Recent Transactions</div>
+
+      <div class="expense-tile">
+        <div class="exp-ico">🍜</div>
+        <div class="exp-mid">
+          <div class="exp-title">Ichiran Ramen</div>
+          <div class="exp-sub">Food &amp; Dining • Mar 20</div>
+        </div>
+        <div class="exp-right">
+          <div class="exp-amt">JPY 1,200</div>
+          <div class="exp-conv">≈ Rp 128,600</div>
+        </div>
+        <span class="exp-more">⋮</span>
+      </div>
+
+      <div class="expense-tile">
+        <div class="exp-ico">🎡</div>
+        <div class="exp-mid">
+          <div class="exp-title">Shibuya Sky Ticket</div>
+          <div class="exp-sub">Activities • Mar 19</div>
+        </div>
+        <div class="exp-right">
+          <div class="exp-amt">JPY 2,500</div>
+          <div class="exp-conv">≈ Rp 267,900</div>
+        </div>
+        <span class="exp-more">⋮</span>
+      </div>
+
+      <div class="expense-tile">
+        <div class="exp-ico">🚃</div>
+        <div class="exp-mid">
+          <div class="exp-title">Suica Top-up</div>
+          <div class="exp-sub">Transport • Mar 18</div>
+        </div>
+        <div class="exp-right">
+          <div class="exp-amt">JPY 3,000</div>
+          <div class="exp-conv">≈ Rp 321,500</div>
+        </div>
+        <span class="exp-more">⋮</span>
+      </div>
+
+    </div><!-- /summary-scroll -->
+
+    <!-- FAB (quick add expense) -->
+    <div class="fab" title="Quick add expense">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+    </div>
+
+  </div><!-- /phone -->
+
+  <script>
+    function toggle(key) {
+      const body = document.getElementById('body-' + key);
+      const chev = document.getElementById('chev-' + key);
+      const opening = body.classList.contains('closed');
+      body.classList.toggle('closed', !opening);
+      body.classList.toggle('open', opening);
+      chev.classList.toggle('up', opening);
+    }
+  </script>
+</body>
+</html>

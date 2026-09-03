@@ -570,7 +570,7 @@ async function refresh() {
       if (session.type === 'split_bill') html = renderSplitBill(data);
       else if (session.type === 'jastip') html = renderJastip(data);
       else html = `<pre style="padding:20px;overflow:auto">${esc(JSON.stringify(data, null, 2))}</pre>`;
-      html += `<div class="footer">KeepTrip · Updated ${timeAgo(session.updated_at)} · <a href="https://keeptrip.app" style="color:var(--accent)">keeptrip.app</a></div>`;
+      html += `<div class="footer">KeepTrip · Updated ${timeAgo(session.updated_at)} · <a href="https://play.google.com/store/apps/details?id=com.travtrack.app" style="color:var(--accent)">keeptrip.app</a></div>`;
       app.innerHTML = html;
     }
 

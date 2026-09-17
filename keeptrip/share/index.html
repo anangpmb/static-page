@@ -153,6 +153,21 @@
       flex-shrink: 0;
       box-shadow: var(--neu-subtle);
     }
+    /* Initial-based member avatar */
+    .avatar-initial {
+      font-size: 14px; font-weight: 800;
+      letter-spacing: 0.3px; text-transform: uppercase;
+    }
+    .avatar-sm {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800;
+      letter-spacing: 0.3px; text-transform: uppercase;
+      background: var(--bg);
+      flex-shrink: 0;
+      box-shadow: var(--neu-subtle);
+    }
 
     .settlement-names { flex: 1; }
     .settlement-from  { font-size: 14px; font-weight: 600; }
@@ -341,6 +356,45 @@ function timeAgo(iso) {
   return new Date(iso).toLocaleDateString('en-US');
 }
 
+// ── Member initials (avatar) ───────────────────────────────────────────────
+// Rules:
+//  1. Take the first letter of the name.
+//  2. If 2+ names share the same first letter, take the first 2 letters.
+//  3. Never show more than 2 letters.
+// e.g. [Rifqi, Rafli, Siwi] -> { Rifqi: "RI", Rafli: "RA", Siwi: "S" }
+function computeInitials(names) {
+  const unique = [...new Set(names.map(n => (n ?? '').trim()).filter(Boolean))];
+  const firstCount = {};
+  for (const name of unique) {
+    const fl = name[0].toUpperCase();
+    firstCount[fl] = (firstCount[fl] ?? 0) + 1;
+  }
+  const map = {};
+  for (const name of unique) {
+    const fl = name[0].toUpperCase();
+    map[name] = firstCount[fl] > 1 ? name.slice(0, 2).toUpperCase() : fl;
+  }
+  return map;
+}
+
+function initialOf(name, map) {
+  const key = (name ?? '').trim();
+  if (!key) return '?';
+  return map?.[key] ?? key[0].toUpperCase();
+}
+
+// Deterministic soft colour per member, harmonised with the warm palette.
+function hueFromName(name) {
+  const s = (name ?? '').trim();
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+  return h;
+}
+function avatarStyle(name) {
+  const h = hueFromName(name);
+  return `background:hsl(${h}, 40%, 85%);color:hsl(${h}, 50%, 32%)`;
+}
+
 // ── Fetch ─────────────────────────────────────────────────────────────────────
 async function fetchSession() {
   const url = `${CONFIG.supabaseUrl}/functions/v1/share-session?id=${shareId}`;
@@ -366,6 +420,16 @@ function renderSplitBill(data) {
 
   let cardIdx = 0;
 
+  // Collect every member name across the split bill for consistent initials.
+  const memberNames = new Set();
+  for (const s of settlements) { if (s.from) memberNames.add(s.from); if (s.to) memberNames.add(s.to); }
+  for (const k of Object.keys(balances)) memberNames.add(k);
+  for (const e of expenses) {
+    if (e.paid_by) memberNames.add(e.paid_by);
+    for (const w of (e.shared_with ?? [])) memberNames.add(w);
+  }
+  const initialsMap = computeInitials([...memberNames]);
+
   let html = `
     <div class="trip-hero">
       <div class="trip-name">💰 ${esc(data.trip_name ?? '—')}</div>
@@ -385,7 +449,7 @@ function renderSplitBill(data) {
     for (const s of [...unpaid, ...paid]) {
       html += `
         <div class="settlement-row">
-          <div class="avatar">👤</div>
+          <div class="avatar avatar-initial" style="${avatarStyle(s.from)}">${esc(initialOf(s.from, initialsMap))}</div>
           <div class="settlement-names">
             <div class="settlement-from">${esc(s.from)} → ${esc(s.to)}</div>
           </div>
@@ -412,6 +476,7 @@ function renderSplitBill(data) {
       const sign = val > 0.5 ? '+' : '';
       html += `
         <div class="balance-row">
+          <div class="avatar-sm" style="${avatarStyle(name)}">${esc(initialOf(name, initialsMap))}</div>
           <div class="balance-name">${esc(name)}</div>
           <div class="balance-amount ${cls}">${sign}${fmt(val, currency)}</div>
         </div>`;
@@ -454,6 +519,12 @@ function renderJastip(data) {
 
   let cardIdx = 0;
 
+  // Collect every requester name for consistent initials.
+  const memberNames = new Set();
+  for (const r of receivables) if (r.requester_name) memberNames.add(r.requester_name);
+  for (const it of items) if (it.requester_name) memberNames.add(it.requester_name);
+  const initialsMap = computeInitials([...memberNames]);
+
   let html = `
     <div class="trip-hero">
       <div class="trip-name">🎁 ${esc(data.trip_name ?? '—')}</div>
@@ -472,7 +543,7 @@ function renderJastip(data) {
     for (const r of receivables) {
       html += `
         <div class="receivable-row">
-          <div class="avatar">${esc(r.requester_avatar ?? '🎁')}</div>
+          <div class="avatar avatar-initial" style="${avatarStyle(r.requester_name)}">${esc(initialOf(r.requester_name, initialsMap))}</div>
           <div class="receivable-info">
             <div class="receivable-name">${esc(r.requester_name)}</div>
             <div class="receivable-sub">${r.item_count ?? 0} items · ${r.to_buy_count ?? 0} to buy · ${r.settled_count ?? 0} settled</div>
@@ -494,7 +565,7 @@ function renderJastip(data) {
     html += `
       <div class="card" style="--i:${cardIdx++}">
         <div class="card-header">
-          <span class="card-icon">${esc(group.avatar ?? '🎁')}</span>
+          <div class="avatar-sm" style="${avatarStyle(name)}">${esc(initialOf(name, initialsMap))}</div>
           <span class="card-title">${esc(name)}</span>
           <span class="card-count">${group.items.length} items</span>
         </div>`;

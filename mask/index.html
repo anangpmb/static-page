@@ -668,23 +668,68 @@ const EFFECTS = {
 // ── Hand Landmarker ───────────────────────────────────────────
 let handLandmarker = null;
 let lastVideoTime  = -1;
+let visionFileset  = null; // cached so WASM isn't re-fetched on rebuild
 
-async function initLandmarker() {
-  startText.textContent = 'Memuat model deteksi tangan…';
-  const vision = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
-  );
-  handLandmarker = await HandLandmarker.createFromOptions(vision, {
+// Adaptive capacity: starts at 2 hands, scales up/down with actual usage
+const HAND_STEPS = [2, 4, 8, 14, 20];
+let stepIdx    = 0;
+let capFrames  = 0; // consecutive frames at/over capacity → scale up
+let lowFrames  = 0; // consecutive frames under previous step → scale down
+let rebuilding = false;
+
+async function buildLandmarker(numHands) {
+  if (!visionFileset) {
+    visionFileset = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+    );
+  }
+  return HandLandmarker.createFromOptions(visionFileset, {
     baseOptions: {
       modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
       delegate: "GPU"
     },
     runningMode: "VIDEO",
-    numHands: 20,
+    numHands,
     minHandDetectionConfidence: 0.55,
     minHandPresenceConfidence: 0.55,
     minTrackingConfidence: 0.55,
   });
+}
+
+async function initLandmarker() {
+  startText.textContent = 'Memuat model deteksi tangan…';
+  handLandmarker = await buildLandmarker(HAND_STEPS[stepIdx]); // start conservative
+}
+
+// Swap landmarker in background; loop skips detection while rebuilding (handLandmarker === null)
+async function doRebuild(newIdx) {
+  if (rebuilding) return;
+  rebuilding = true;
+  const old = handLandmarker;
+  const oldIdx = stepIdx;
+  handLandmarker = null;
+  stepIdx = newIdx;
+  try {
+    handLandmarker = await buildLandmarker(HAND_STEPS[newIdx]);
+    old?.close();
+  } catch {
+    handLandmarker = old; // restore on failure
+    stepIdx = oldIdx;
+  }
+  rebuilding = false;
+}
+
+function adaptLandmarker(count) {
+  if (rebuilding) return;
+  if (count >= HAND_STEPS[stepIdx] && stepIdx < HAND_STEPS.length - 1) {
+    lowFrames = 0;
+    if (++capFrames >= 10) { capFrames = 0; doRebuild(stepIdx + 1); }
+  } else if (stepIdx > 0 && count <= HAND_STEPS[stepIdx - 1]) {
+    capFrames = 0;
+    if (++lowFrames >= 200) { lowFrames = 0; doRebuild(stepIdx - 1); } // ~3 s at 60 fps
+  } else {
+    capFrames = 0; lowFrames = 0;
+  }
 }
 
 async function startCamera() {
@@ -808,31 +853,32 @@ const PERSON_COLORS = [
   '#ff4db4', '#4d8fff',
 ];
 
-// Greedily pair Left+Right hands by wrist proximity.
-// Returns array of pairs: each entry is [leftHand?, rightHand?]
+// Pair hands by proximity, never pairing same handedness (left+left / right+right).
 function pairHands(hands) {
-  const lefts  = hands.filter(h => h.handedness === 'Left');
-  const rights = hands.filter(h => h.handedness === 'Right');
-  const people  = [];
-  const usedRight = new Set();
+  const sorted = hands.slice().sort((a, b) => a.wrist[0] - b.wrist[0]);
+  const used   = new Set();
+  const people = [];
+  const MAX_PAIR_DIST = canvas.width * 0.65; // tighter than before to avoid cross-person pairing
 
-  for (const left of lefts) {
-    let bestDist = Infinity, bestRight = null;
-    for (const right of rights) {
-      if (usedRight.has(right)) continue;
-      const d = Math.hypot(left.wrist[0] - right.wrist[0], left.wrist[1] - right.wrist[1]);
-      if (d < bestDist) { bestDist = d; bestRight = right; }
+  for (let i = 0; i < sorted.length; i++) {
+    if (used.has(i)) continue;
+    const h1 = sorted[i];
+    let bestJ = -1, bestDist = MAX_PAIR_DIST;
+
+    for (let j = i + 1; j < sorted.length; j++) {
+      if (used.has(j)) continue;
+      if (sorted[j].handedness === h1.handedness) continue; // explicit left+left / right+right block
+      const d = Math.hypot(h1.wrist[0] - sorted[j].wrist[0], h1.wrist[1] - sorted[j].wrist[1]);
+      if (d < bestDist) { bestDist = d; bestJ = j; }
     }
-    // Only pair if wrists are within 85% of frame width of each other
-    if (bestRight && bestDist < canvas.width * 0.85) {
-      usedRight.add(bestRight);
-      people.push([left, bestRight]);
+
+    if (bestJ !== -1) {
+      used.add(i); used.add(bestJ);
+      people.push([h1, sorted[bestJ]]);
     } else {
-      people.push([left]);
+      used.add(i);
+      people.push([h1]);
     }
-  }
-  for (const right of rights) {
-    if (!usedRight.has(right)) people.push([right]);
   }
   return people;
 }
@@ -930,52 +976,67 @@ function loop() {
         allHands.push({ handedness, wrist, fingertips, lm, P });
       });
     }
-    handsVal.textContent = handCount;
+    adaptLandmarker(handCount);
+    handsVal.textContent = `${handCount}/${HAND_STEPS[stepIdx]}`;
+
+    // ── Gesture detection (always runs, both modes) ───────────
+    const people = pairHands(allHands);
+
+    people.forEach((pair, pi) => {
+      const gs = gestureState[pi];
+      if (!gs) return;
+      const gestures = pair.map(hand => classifyHand(hand.P));
+      const anyPinch = gestures.some(g => g.isNodePinch);
+      const anyOK    = gestures.some(g => g.isOK);
+      const okMid    = gestures.find(g => g.isOK)?.midpoint;
+
+      if (anyPinch && !gs.pinch && state.manualMode) {
+        const now = performance.now();
+        if (now - gs.lastNodeAt >= NODE_PINCH_COOLDOWN) {
+          const mid = gestures.find(g => g.isNodePinch)?.midpoint;
+          if (mid) addManualNode(mid);
+          gs.lastNodeAt = now;
+        }
+      }
+      gs.pinch = anyPinch;
+
+      if (anyOK) {
+        if (!gs.ok) gs.okStartAt = performance.now();
+        const held = performance.now() - gs.okStartAt;
+        const progress = Math.min(held / OK_HOLD_MS, 1);
+        if (okMid) drawOKProgress(okMid, progress);
+        if (progress >= 1 && !shutterActive) {
+          triggerShutter();
+          gs.okStartAt = performance.now();
+        }
+      } else {
+        gs.okStartAt = 0;
+      }
+      gs.ok = anyOK;
+    });
 
     // ── Shape + Effect rendering ──────────────────────────────
     if (!state.manualMode) {
-      // Multi-person: pair hands and render one shape per person
-      const people = pairHands(allHands);
       peopleVal.textContent = people.length || '–';
-
-      // Gesture detection per-person (stable across frames)
-      people.forEach((pair, pi) => {
-        const gs = gestureState[pi];
-        if (!gs) return;
-        // Classify all hands first, then aggregate — prevents second hand clobbering first
-        const gestures = pair.map(hand => classifyHand(hand.P));
-        const anyPinch = gestures.some(g => g.isNodePinch);
-        const anyOK    = gestures.some(g => g.isOK);
-        const okMid    = gestures.find(g => g.isOK)?.midpoint;
-
-        if (anyPinch && !gs.pinch && state.manualMode) {
-          const now = performance.now();
-          if (now - gs.lastNodeAt >= NODE_PINCH_COOLDOWN) {
-            const mid = gestures.find(g => g.isNodePinch)?.midpoint;
-            if (mid) addManualNode(mid);
-            gs.lastNodeAt = now;
-          }
-        }
-        gs.pinch = anyPinch;
-
-        if (anyOK) {
-          if (!gs.ok) gs.okStartAt = performance.now();
-          const held = performance.now() - gs.okStartAt;
-          const progress = Math.min(held / OK_HOLD_MS, 1);
-          if (okMid) drawOKProgress(okMid, progress);
-          if (progress >= 1 && !shutterActive) {
-            triggerShutter();
-            gs.okStartAt = performance.now();
-          }
-        } else {
-          gs.okStartAt = 0;
-        }
-        gs.ok = anyOK;
-      });
 
       people.forEach((pair, pi) => {
         const color = PERSON_COLORS[pi % PERSON_COLORS.length];
-        // All fingertips from both hands in this pair (up to 10 points)
+
+        // Always draw landmarks, even for unpaired single hands
+        if (state.showDebug) {
+          pair.forEach(hand => {
+            ctx.fillStyle = 'rgba(200,255,77,0.75)';
+            hand.lm.forEach(p => {
+              ctx.beginPath(); ctx.arc(p.x*w, p.y*h, 2.2, 0, Math.PI*2); ctx.fill();
+            });
+            hand.fingertips.forEach(p => {
+              ctx.fillStyle = color;
+              ctx.beginPath(); ctx.arc(p[0], p[1], 5, 0, Math.PI * 2); ctx.fill();
+            });
+          });
+        }
+
+        // Shape + effect only when two hands are paired (4 fingertip points)
         const pts = pair.flatMap(h => h.fingertips);
         if (pts.length < 3) return;
         const poly = state.hullMode ? convexHull(pts) : pts;
@@ -1000,16 +1061,6 @@ function loop() {
           ctx.strokeStyle = color; ctx.lineWidth = 2;
           tracePolygon(poly); ctx.stroke();
           ctx.restore();
-          pair.forEach(hand => {
-            ctx.fillStyle = 'rgba(200,255,77,0.75)';
-            hand.lm.forEach(p => {
-              ctx.beginPath(); ctx.arc(p.x*w, p.y*h, 2.2, 0, Math.PI*2); ctx.fill();
-            });
-            hand.fingertips.forEach(p => {
-              ctx.fillStyle = color;
-              ctx.beginPath(); ctx.arc(p[0], p[1], 5, 0, Math.PI * 2); ctx.fill();
-            });
-          });
         }
       });
 

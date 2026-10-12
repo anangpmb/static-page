@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rentang Query Laporan Mingguan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#E6ECF0;
+    --surface:#FFFFFF;
+    --ink:#1B2A3A;
+    --muted:#5B6B7A;
+    --line:#C9D4DC;
+    --teal:#0E6F78;
+    --teal-soft:#CFE7EA;
+    --amber:#E9A23B;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:17px;line-height:1.5}
+  main{max-width:700px;margin:0 auto;padding:48px 20px 64px}
+  h1{font-size:2rem;line-height:1.15;margin:0 0 8px;letter-spacing:-0.01em}
+  .lead{color:var(--muted);margin:0 0 32px;max-width:60ch}
+
+  .inputs{display:grid;grid-template-columns:2fr 1fr 1fr;gap:16px;margin-bottom:28px}
+  label{display:block;font-size:.875rem;font-weight:700;margin-bottom:6px}
+  input{width:100%;font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink)}
+  input:focus-visible,button:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+
+  .results{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+  .row{display:grid;grid-template-columns:100px 1fr auto;align-items:center;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line)}
+  .row .name{font-weight:700;color:var(--muted);font-size:.9rem}
+  .row .value{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-size:1.25rem;font-weight:500;color:var(--teal);user-select:all;word-break:break-all}
+  button{font:inherit;font-size:.9rem;font-weight:700;padding:8px 14px;border-radius:6px;border:1.5px solid var(--teal);background:var(--surface);color:var(--teal);cursor:pointer;min-width:84px}
+  button:hover{background:var(--teal-soft)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+
+  .strip{display:flex;flex-wrap:wrap;gap:6px;padding:18px 20px;border-bottom:1px solid var(--line)}
+  .day{width:62px;padding:8px 0 6px;border:1.5px solid var(--line);border-radius:6px;text-align:center;font-size:.8rem;color:var(--muted)}
+  .day b{display:block;font-size:1.15rem;color:var(--ink);line-height:1.2}
+  .day .tag{display:block;font-size:.7rem;font-weight:700;color:var(--teal);margin-top:2px;min-height:1.05em}
+  .day.in{border-color:#9CCBD0}
+  .day.report{border:2px solid var(--amber)}
+  .day.report .tag{color:#8A5A10}
+
+  .footer{padding:14px 20px;background:#F3F6F8}
+  .summary{margin:0;font-size:.95rem}
+  .note{margin:4px 0 0;font-size:.85rem;color:var(--muted)}
+  .error{color:#A3341F;font-weight:700}
+
+  @media (max-width:560px){
+    main{padding-top:32px}
+    h1{font-size:1.6rem}
+    .inputs{grid-template-columns:1fr 1fr}
+    .inputs .field-date{grid-column:1 / -1}
+    .row{grid-template-columns:1fr auto}
+    .row .name{grid-column:1 / -1}
+    .row .value{font-size:1.05rem}
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Rentang query laporan mingguan</h1>
+  <p class="lead">Masukkan tanggal pembuatan laporan. Start date dan end date untuk query dihitung otomatis.</p>
+
+  <div class="inputs">
+    <div class="field-date">
+      <label for="reportDate">Tanggal laporan</label>
+      <input type="date" id="reportDate">
+    </div>
+    <div>
+      <label for="cutoff">Jam cut-off</label>
+      <input type="time" id="cutoff" value="17:00">
+    </div>
+    <div>
+      <label for="days">Jumlah hari</label>
+      <input type="number" id="days" value="7" min="1" max="31">
+    </div>
+  </div>
+
+  <section class="results" aria-label="Hasil rentang query">
+    <div class="row">
+      <span class="name">Start date</span>
+      <span class="value" id="startVal">-</span>
+      <button type="button" id="copyStart">Salin</button>
+    </div>
+    <div class="row">
+      <span class="name">End date</span>
+      <span class="value" id="endVal">-</span>
+      <button type="button" id="copyEnd">Salin</button>
+    </div>
+    <div class="strip" id="strip" aria-hidden="true"></div>
+    <div class="footer">
+      <p class="summary" id="summary" aria-live="polite"></p>
+      <p class="note" id="note">Area berwarna pada kotak tanggal menunjukkan rentang data yang diambil.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+  const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+  const BLN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+  const HARI = ["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
+
+  const el = id => document.getElementById(id);
+  const reportInput = el("reportDate"), cutoffInput = el("cutoff"), daysInput = el("days");
+  const pad = n => String(n).padStart(2, "0");
+
+  // Semua perhitungan memakai UTC agar tidak terpengaruh zona waktu browser
+  const ymd = d => `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+  const longDate = d => `${d.getUTCDate()} ${BULAN[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+
+  // Default: tanggal hari ini
+  const now = new Date();
+  reportInput.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+  function showError(msg){
+    el("startVal").textContent = "-";
+    el("endVal").textContent = "-";
+    el("copyStart").disabled = el("copyEnd").disabled = true;
+    el("strip").innerHTML = "";
+    el("strip").style.display = "none";
+    el("note").style.display = "none";
+    el("summary").innerHTML = `<span class="error">${msg}</span>`;
+  }
+
+  function compute(){
+    const rd = reportInput.value;
+    const days = Number(daysInput.value);
+    const [hh, mm] = (cutoffInput.value || "17:00").split(":");
+
+    if (!rd) return showError("Pilih tanggal laporan untuk melihat rentang query.");
+    if (!Number.isInteger(days) || days < 1 || days > 31) return showError("Isi jumlah hari antara 1 sampai 31.");
+
+    const [y, m, d] = rd.split("-").map(Number);
+    const report = new Date(Date.UTC(y, m - 1, d));
+    const end    = new Date(Date.UTC(y, m - 1, d - 1));          // H-1
+    const start  = new Date(Date.UTC(y, m - 1, d - 1 - days));   // H-1 dikurangi jumlah hari
+    const time   = `${pad(hh)}:${pad(mm)}`;
+
+    el("startVal").textContent = `${ymd(start)} ${time}:00`;
+    el("endVal").textContent   = `${ymd(end)} ${time}:00`;
+    el("copyStart").disabled = el("copyEnd").disabled = false;
+
+    el("summary").textContent =
+      `Laporan tanggal ${longDate(report)} mengambil data dari ${longDate(start)} pukul ${time} sampai ${longDate(end)} pukul ${time} (${days} hari).`;
+
+    // Kotak tanggal dari start date sampai tanggal laporan
+    const fill = ((Number(hh) * 60 + Number(mm)) / 1440 * 100).toFixed(1);
+    const strip = el("strip");
+    strip.innerHTML = "";
+    for (let i = 0; i <= days + 1; i++){
+      const cur = new Date(Date.UTC(y, m - 1, d - 1 - days + i));
+      const cell = document.createElement("div");
+      cell.className = "day";
+      let tag = "";
+      if (i === 0){
+        cell.classList.add("in");
+        cell.style.background = `linear-gradient(to right, transparent ${fill}%, var(--teal-soft) ${fill}%)`;
+        tag = `dari ${time}`;
+      } else if (i === days){
+        cell.classList.add("in");
+        cell.style.background = `linear-gradient(to right, var(--teal-soft) ${fill}%, transparent ${fill}%)`;
+        tag = `s.d. ${time}`;
+      } else if (i < days){
+        cell.classList.add("in");
+        cell.style.background = "var(--teal-soft)";
+      } else {
+        cell.classList.add("report");
+        tag = "laporan";
+      }
+      cell.innerHTML = `${HARI[cur.getUTCDay()]}<b>${cur.getUTCDate()}</b>${BLN[cur.getUTCMonth()]}<span class="tag">${tag}</span>`;
+      strip.appendChild(cell);
+    }
+    strip.style.display = "flex";
+    el("note").style.display = "block";
+  }
+
+  async function copyText(text, btn){
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    } catch (e) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { ok = document.execCommand("copy"); } catch (e2) { ok = false; }
+      ta.remove();
+    }
+    btn.textContent = ok ? "Tersalin" : "Salin manual";
+    setTimeout(() => { btn.textContent = "Salin"; }, 1500);
+  }
+
+  el("copyStart").addEventListener("click", e => copyText(el("startVal").textContent, e.currentTarget));
+  el("copyEnd").addEventListener("click", e => copyText(el("endVal").textContent, e.currentTarget));
+  [reportInput, cutoffInput, daysInput].forEach(i => i.addEventListener("input", compute));
+
+  compute();
+</script>
+</body>
+</html>

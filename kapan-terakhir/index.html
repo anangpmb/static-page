@@ -1,0 +1,977 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kapan Terakhir?</title>
+<meta name="description" content="Catat kegiatan dan lihat sudah berapa lama sejak terakhir kali kamu melakukannya.">
+<meta name="theme-color" content="#FFFFFF" id="themeColor">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Terakhir">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shantell+Sans:wght,BNCE,INFM@300..800,-100..100,0..100&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #FFFFFF;
+    --dot: #DDE2EE;
+    --ink: #1F3A9E;      /* tinta pulpen biru */
+    --muted: #5A6690;
+    --soft: #C7CEE2;
+    --red: #CF2B2B;      /* tinta merah koreksi */
+  }
+  /* Mode gelap: papan tulis & kapur. Dipakai saat dipilih manual, atau saat perangkat gelap dan belum memilih terang. */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --paper: #1C2027;
+    --dot: #2C323D;
+    --ink: #E4E9F6;
+    --muted: #9CA6BF;
+    --soft: #3C4453;
+    --red: #FF8A80;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --paper: #1C2027;
+      --dot: #2C323D;
+      --ink: #E4E9F6;
+      --muted: #9CA6BF;
+      --soft: #3C4453;
+      --red: #FF8A80;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background-color: var(--paper);
+    background-image: radial-gradient(circle, var(--dot) 1px, transparent 1.4px);
+    background-size: 24px 24px;
+    color: var(--ink);
+    font-family: "Shantell Sans", "Chalkboard SE", "Comic Neue", "Comic Sans MS", system-ui, sans-serif;
+    font-variation-settings: "INFM" 25, "BNCE" 0;
+    font-size: 16.5px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 2px dashed var(--ink); outline-offset: 4px; border-radius: 6px; }
+
+  .hand { font-variation-settings: "INFM" 100, "BNCE" 45; }
+  .doodle-line { fill: none; stroke: var(--ink); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+
+  .app {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: calc(28px + env(safe-area-inset-top)) 20px calc(100px + env(safe-area-inset-bottom));
+  }
+
+  /* Kepala */
+  .top { margin-bottom: 30px; }
+  .subrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
+  .title { display: inline-block; }
+  h1 { margin: 0; font-weight: 700; font-size: 2.3rem; line-height: 1.1; }
+  .squiggle { display: block; width: 100%; height: 12px; margin-top: 2px; }
+  .now { margin: 0; color: var(--muted); font-size: .875rem; }
+
+  /* Kotak bergaris tangan: garisnya digambar di ::before lalu "digoyang" dengan filter */
+  .btn, .chip, .toast { position: relative; isolation: isolate; }
+  .btn::before, .chip::before, .toast::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    filter: url(#rough);
+  }
+  .btn {
+    font: inherit;
+    font-weight: 650;
+    color: var(--ink);
+    background: none;
+    border: 0;
+    padding: 10px 20px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn::before {
+    border: 2px solid currentColor;
+    border-radius: 16px 9px 14px 10px / 10px 14px 9px 16px;
+    transition: transform .15s;
+  }
+  .btn.solid { color: var(--paper); }
+  .btn.solid::before { background: var(--ink); border-color: var(--ink); }
+  .btn.small { padding: 5px 14px; font-size: .92rem; }
+  .btn:hover::before { transform: rotate(-1.5deg); }
+  .btn:active { transform: translateY(1px); }
+
+  .link {
+    font: inherit;
+    background: none;
+    border: 0;
+    padding: 4px 0;
+    color: var(--ink);
+    text-decoration: underline wavy;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+    cursor: pointer;
+  }
+  .link.danger { color: var(--red); }
+
+  .top-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+  .icon-btn {
+    position: relative;
+    isolation: isolate;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .icon-btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: 2px solid currentColor;
+    border-radius: 52% 48% 50% 46% / 48% 52% 46% 50%;
+    filter: url(#rough);
+    transition: transform .2s;
+  }
+  .icon-btn:hover::before { transform: rotate(-8deg); }
+  .icon-btn svg { width: 22px; height: 22px; }
+  .icon-btn:active svg { transform: rotate(-15deg); }
+
+  /* Isian seperti menulis di atas garis */
+  .write { position: relative; display: block; flex: 1; min-width: 0; }
+  .write::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 14px;
+    border-bottom: 2px solid var(--ink);
+    filter: url(#rough);
+    pointer-events: none;
+  }
+  .write:focus-within::after { border-bottom-width: 3.5px; }
+  .write input, .write select {
+    width: 100%;
+    font: inherit;
+    color: var(--ink);
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 8px 2px 9px;
+    outline: none;
+  }
+  .write input { font-size: 1.15rem; }
+  .write input::placeholder { color: var(--muted); opacity: .75; }
+
+  /* Form catat */
+  .pad { margin-bottom: 18px; }
+  .pad > label { display: block; font-weight: 600; margin-bottom: 2px; }
+  .entry { display: flex; align-items: flex-end; gap: 14px; }
+  .when { margin-top: 10px; }
+  .when-field { margin-top: 8px; }
+  .when-field label { display: block; font-size: .875rem; color: var(--muted); }
+  .error { color: var(--red); font-size: .9rem; margin: 10px 0 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px 10px; margin-top: 16px; }
+  .chip {
+    font: inherit;
+    font-size: .9rem;
+    color: var(--ink);
+    background: none;
+    border: 0;
+    padding: 4px 13px;
+    cursor: pointer;
+  }
+  .chip::before { border: 1.5px solid var(--soft); border-radius: 999px; }
+  .chip:hover::before { border-color: var(--ink); }
+
+  .divider { display: block; width: 100%; height: 14px; margin: 0 0 12px; }
+
+  /* Daftar */
+  .listhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+  h2 { margin: 0; font-size: 1.2rem; font-weight: 700; }
+  .sort { display: flex; align-items: center; gap: 8px; font-size: .875rem; color: var(--muted); }
+  .sort .write { flex: none; }
+  .sort select { appearance: none; -webkit-appearance: none; padding: 2px 20px 4px 2px; font-size: .9rem; cursor: pointer; }
+  .sort .chev { position: absolute; right: 2px; top: 50%; width: 12px; height: 12px; margin-top: -7px; pointer-events: none; }
+  .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 34px; }
+  .item { display: grid; grid-template-columns: 92px 1fr; column-gap: 18px; align-items: start; }
+
+  /* Halaman kalender coretan */
+  .sheet { position: relative; width: 92px; height: 112px; user-select: none; }
+  .sheet svg { position: absolute; inset: 0; width: 92px; height: 112px; overflow: visible; }
+  .sheet .paper { fill: var(--paper); }
+  .sheet .stack, .sheet .circle { display: none; }
+  .item[data-depth="1"] .s1,
+  .item[data-depth="2"] .s1,
+  .item[data-depth="2"] .s2 { display: inline; }
+  .item[data-state="late"] .circle { display: inline; stroke: var(--red); stroke-width: 2.2; }
+  .month, .num, .unit { position: absolute; left: 0; right: 0; text-align: center; }
+  .month { top: 12px; font-size: .7rem; color: var(--muted); }
+  .num {
+    top: 30px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.9rem;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .num.len3 { font-size: 2.15rem; }
+  .num.len4 { font-size: 1.65rem; }
+  .unit { top: 80px; font-size: .74rem; color: var(--muted); }
+  .item[data-state="late"] .num { color: var(--red); transform: scale(.8); }
+  .item[data-state="new"] .num { color: var(--muted); }
+
+  /* Keterangan */
+  .info { min-width: 0; padding-top: 4px; }
+  .name { margin: 0 0 2px; font-size: 1.25rem; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+  .tick { margin: 0; font-variant-numeric: tabular-nums; }
+  .last { margin: 2px 0 0; color: var(--muted); font-size: .875rem; }
+  .status { margin: 6px 0 0; font-size: .9rem; }
+  .item[data-state="late"] .status { color: var(--red); }
+  .item[data-state="new"] .status { color: var(--muted); }
+  .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; }
+
+  /* Riwayat */
+  .history { grid-column: 1 / -1; position: relative; margin-top: 16px; padding: 0 0 4px 18px; }
+  .history::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 4px; bottom: 4px;
+    width: 10px;
+    border-left: 2px solid var(--soft);
+    filter: url(#rough);
+  }
+  .hlist { list-style: none; margin: 0 0 8px; padding: 0; }
+  .hlist li {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 12px;
+    align-items: baseline;
+    padding: 9px 0;
+    border-bottom: 1.5px dashed var(--soft);
+  }
+  .hdate { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .hgap { grid-column: 1; font-size: .85rem; color: var(--muted); }
+  .hlist .link { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-size: .9rem; }
+
+  /* Kosong & memuat */
+  .empty { display: grid; grid-template-columns: 92px 1fr; column-gap: 18px; align-items: center; }
+  .empty .num { color: var(--soft); }
+  .empty p { margin: 0 0 6px; color: var(--muted); }
+  .loading { color: var(--muted); margin: 0; }
+
+  .foot { margin-top: 48px; color: var(--muted); font-size: .85rem; }
+  .foot p { margin: 0 0 6px; }
+
+  /* Notifikasi */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    transform: translate(-50%, 16px);
+    width: max-content;
+    max-width: calc(100% - 32px);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 16px 10px 18px;
+    color: var(--ink);
+    font-size: .95rem;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .2s, transform .2s, visibility 0s .2s;
+    z-index: 30;
+  }
+  .toast::before {
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    border-radius: 14px 10px 16px 9px / 9px 16px 10px 14px;
+    box-shadow: 3px 4px 0 var(--ink);
+  }
+  .toast.show { opacity: 1; visibility: visible; transform: translate(-50%, 0) rotate(-.6deg); transition: opacity .2s, transform .2s; }
+  .toast .link { font-weight: 700; }
+
+  /* Satu momen gerak: angka lama dicoret saat dicatat lagi */
+  .scratch {
+    position: fixed;
+    z-index: 20;
+    margin: 0;
+    pointer-events: none;
+    animation: fadeaway .3s ease-in .42s forwards;
+  }
+  .scratch .zig {
+    fill: none;
+    stroke: var(--ink);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: draw .38s ease-out forwards;
+  }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @keyframes fadeaway { to { opacity: 0; transform: translateY(8px) rotate(-3deg); } }
+  .sheet.fresh .num, .sheet.fresh .unit { animation: reveal .4s ease-out .2s both; }
+  @keyframes reveal { from { opacity: 0; } to { opacity: 1; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scratch { display: none; }
+    .sheet.fresh .num, .sheet.fresh .unit { animation: none; }
+    .btn::before, .toast, .toast.show { transition: none; }
+  }
+</style>
+</head>
+<body>
+<!-- Filter pembuat garis goyang ala tangan -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <filter id="rough" x="-5%" y="-25%" width="110%" height="150%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="noise"/>
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="3.2" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<div class="app">
+  <header class="top">
+    <div class="title">
+      <h1 class="hand">Kapan terakhir?</h1>
+      <svg class="squiggle" viewBox="0 0 220 12" preserveAspectRatio="none" aria-hidden="true">
+        <path class="doodle-line" d="M3 8 C 20 2, 34 12, 52 6 S 84 1, 102 7 S 134 12, 152 5 S 190 2, 217 7"/>
+      </svg>
+    </div>
+    <div class="subrow">
+      <p class="now" id="now"></p>
+      <div class="top-actions">
+        <button type="button" class="btn small" id="installBtn" hidden>Pasang aplikasi</button>
+        <button type="button" class="icon-btn" id="themeBtn" aria-label="Ganti ke mode gelap" title="Ganti ke mode gelap">
+          <svg id="sunIcon" viewBox="0 0 24 24" aria-hidden="true" hidden>
+            <path class="doodle-line" d="M12 7.6 C 14.8 7.4, 16.5 9.6, 16.4 12 C 16.3 14.7, 14.3 16.5, 12 16.4 C 9.4 16.3, 7.5 14.4, 7.6 12 C 7.7 9.4, 9.6 7.7, 12.4 7.7"/>
+            <path class="doodle-line" d="M12 2.6 L12 4.7 M12.2 19.4 L12 21.4 M2.6 12 L4.7 12.1 M19.3 11.9 L21.4 12 M5.3 5.2 L6.8 6.7 M17.2 17.3 L18.7 18.9 M5.2 18.8 L6.7 17.3 M17.3 6.8 L18.8 5.3"/>
+          </svg>
+          <svg id="moonIcon" viewBox="0 0 24 24" aria-hidden="true">
+            <path class="doodle-line" d="M15.4 3.6 C 10 4.1, 6.6 8.5, 7.1 13 C 7.7 18, 12.6 21, 17.4 19.6 C 18.9 19.1, 19.9 18.4, 20.7 17.5 C 16 17.7, 12.5 14.1, 12.7 9.4 C 12.8 7.1, 13.8 5, 15.6 3.7"/>
+            <path class="doodle-line" d="M19 5 L19.2 7.6 M17.9 6.4 L20.4 6.3"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <section class="pad" aria-label="Catat kegiatan">
+    <label for="nameInput">Apa yang baru kamu lakukan?</label>
+    <div class="entry">
+      <span class="write"><input id="nameInput" type="text" list="known" placeholder="misalnya cukur rambut" maxlength="60" autocomplete="off" enterkeyhint="done"></span>
+      <button type="button" class="btn solid" id="submitBtn">Catat</button>
+    </div>
+    <datalist id="known"></datalist>
+    <div class="when">
+      <button type="button" class="link" id="whenToggle" aria-expanded="false" aria-controls="whenField">Bukan barusan? Atur waktunya</button>
+      <div class="when-field" id="whenField" hidden>
+        <label for="whenInput">Waktu kejadian</label>
+        <span class="write"><input id="whenInput" type="datetime-local"></span>
+      </div>
+    </div>
+    <p class="error" id="formError" role="alert" hidden></p>
+    <div class="chips" id="chips" aria-label="Contoh kegiatan"></div>
+  </section>
+
+  <svg class="divider" viewBox="0 0 460 14" preserveAspectRatio="none" aria-hidden="true">
+    <path class="doodle-line" d="M2 8 C 40 4, 80 11, 120 7 S 200 4, 240 8 S 320 11, 360 6 S 430 5, 458 8"/>
+  </svg>
+
+  <section aria-labelledby="listTitle">
+    <div class="listhead">
+      <h2 class="hand" id="listTitle">Catatanmu</h2>
+      <label class="sort">Urutkan
+        <span class="write">
+          <select id="sortSel">
+            <option value="oldest">paling lama</option>
+            <option value="newest">paling baru</option>
+            <option value="name">nama</option>
+          </select>
+          <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path class="doodle-line" d="M2 4 C 4 6, 5 7.5, 6 8.5 C 7.5 7, 8.5 5.5, 10.5 3.5"/></svg>
+        </span>
+      </label>
+    </div>
+    <p class="loading" id="loading">Memuat catatan…</p>
+    <ul class="list" id="list"></ul>
+    <div class="empty" id="empty" hidden>
+      <div class="sheet" aria-hidden="true">
+        <svg viewBox="0 0 92 112">
+          <path class="paper doodle-line" d="M5 9 C 30 7, 62 10, 87 8 C 88 38, 86 70, 88 101 C 62 103, 30 100, 4 102 C 6 72, 3 40, 5 9 Z"/>
+          <path class="doodle-line" d="M7 28 C 32 26, 62 29, 85 27"/>
+          <path class="doodle-line" d="M26 15 C 23 3, 35 1, 33 13"/>
+          <path class="doodle-line" d="M58 15 C 55 3, 67 1, 65 13"/>
+        </svg>
+        <span class="num hand">?</span>
+      </div>
+      <div>
+        <p>Belum ada catatan. Tulis kegiatan pertamamu di atas, misalnya cukur rambut, lalu ketuk Catat.</p>
+        <button type="button" class="link" id="seedBtn">Isi contoh data</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>Catatan tersimpan di perangkat ini saja.</p>
+    <p id="themeNote" hidden><span id="themeNoteText"></span> <button type="button" class="link" id="followBtn">Ikuti tema perangkat</button></p>
+    <p id="iosHint" hidden>Di iPhone: ketuk tombol Bagikan, lalu Tambah ke Layar Utama.</p>
+  </footer>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <span id="toastMsg"></span>
+  <button type="button" class="link" id="toastUndo">Batalkan</button>
+</div>
+
+<template id="tplItem">
+  <li class="item">
+    <div class="sheet" aria-hidden="true">
+      <svg viewBox="0 0 92 112">
+        <path class="stack s2 doodle-line" d="M15 110 C 40 112, 60 109, 77 111"/>
+        <path class="stack s1 doodle-line" d="M9 106 C 36 108, 62 105, 83 107"/>
+        <path class="paper doodle-line" d="M5 9 C 30 7, 62 10, 87 8 C 88 38, 86 70, 88 101 C 62 103, 30 100, 4 102 C 6 72, 3 40, 5 9 Z"/>
+        <path class="doodle-line" d="M7 28 C 32 26, 62 29, 85 27"/>
+        <path class="doodle-line" d="M26 15 C 23 3, 35 1, 33 13"/>
+        <path class="doodle-line" d="M58 15 C 55 3, 67 1, 65 13"/>
+        <path class="circle doodle-line" d="M16 64 C 8 40, 74 25, 83 50 C 90 76, 30 88, 12 68 C 5 56, 22 31, 58 30"/>
+      </svg>
+      <span class="month"></span>
+      <span class="num hand"></span>
+      <span class="unit"></span>
+    </div>
+    <div class="info">
+      <h3 class="name hand"></h3>
+      <p class="tick"></p>
+      <p class="last"></p>
+      <p class="status"></p>
+      <div class="actions">
+        <button type="button" class="btn small again">Catat lagi</button>
+        <button type="button" class="link hist" aria-expanded="false"></button>
+      </div>
+    </div>
+    <div class="history" hidden>
+      <ol class="hlist"></ol>
+      <button type="button" class="link danger del-act">Hapus kegiatan ini</button>
+    </div>
+  </li>
+</template>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- Penyimpanan ----------
+  // Di pratinjau Claude memakai window.storage; saat di-hosting sendiri memakai localStorage peramban.
+  const KEY = 'kapan-terakhir:data';
+  const store = {
+    async load() {
+      if (window.storage && typeof window.storage.get === 'function') {
+        try {
+          const r = await window.storage.get(KEY, false);
+          return r && r.value ? JSON.parse(r.value) : null;
+        } catch (e) { return null; }
+      }
+      try {
+        const v = window.localStorage.getItem(KEY);
+        return v ? JSON.parse(v) : null;
+      } catch (e) { return null; }
+    },
+    async save(data) {
+      const json = JSON.stringify(data);
+      if (window.storage && typeof window.storage.set === 'function') {
+        try { return !!(await window.storage.set(KEY, json, false)); } catch (e) { return false; }
+      }
+      try { window.localStorage.setItem(KEY, json); return true; } catch (e) { return false; }
+    }
+  };
+
+  // ---------- Utilitas ----------
+  const $ = (s, el = document) => el.querySelector(s);
+  const SEC = 1000, MIN = 60 * SEC, HOUR = 60 * MIN, DAY = 24 * HOUR;
+  const SUGGEST = ['Cukur rambut', 'Potong kuku', 'Ganti sprei', 'Ganti oli motor', 'Servis AC', 'Cuci mobil', 'Bersihkan kipas angin'];
+
+  const norm = (s) => s.trim().replace(/\s+/g, ' ').toLowerCase();
+  const tidy = (s) => { const t = s.trim().replace(/\s+/g, ' '); return t.charAt(0).toUpperCase() + t.slice(1); };
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const lastOf = (a) => a.entries[a.entries.length - 1];
+
+  const fmtDate = new Intl.DateTimeFormat('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const fmtNow = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const fmtMonth = new Intl.DateTimeFormat('id-ID', { month: 'short', year: 'numeric' });
+
+  function split(ms) {
+    ms = Math.max(0, ms);
+    const d = Math.floor(ms / DAY); ms -= d * DAY;
+    const h = Math.floor(ms / HOUR); ms -= h * HOUR;
+    const m = Math.floor(ms / MIN); ms -= m * MIN;
+    return { d, h, m, s: Math.floor(ms / SEC) };
+  }
+  // "23 hari 3 jam 12 menit 5 detik"
+  function precise(ms) {
+    const { d, h, m, s } = split(ms);
+    const out = [];
+    if (d) out.push(d + ' hari');
+    if (d || h) out.push(h + ' jam');
+    if (d || h || m) out.push(m + ' menit');
+    out.push(s + ' detik');
+    return out.join(' ');
+  }
+  // "28 hari", "3 bulan", "1,5 tahun"
+  function approx(ms) {
+    ms = Math.abs(ms);
+    if (ms < HOUR) return Math.max(1, Math.round(ms / MIN)) + ' menit';
+    if (ms < 2 * DAY) return Math.round(ms / HOUR) + ' jam';
+    if (ms < 60 * DAY) return Math.round(ms / DAY) + ' hari';
+    if (ms < 730 * DAY) return Math.round(ms / (30.44 * DAY)) + ' bulan';
+    return String(Math.round(ms / (365.25 * DAY) * 10) / 10).replace('.', ',') + ' tahun';
+  }
+  // Angka besar di halaman kalender
+  function pageValue(ms) {
+    const { d, h, m, s } = split(ms);
+    if (d) return [d, 'hari lalu'];
+    if (h) return [h, 'jam lalu'];
+    if (m) return [m, 'menit lalu'];
+    return [s, 'detik lalu'];
+  }
+  function stats(a, now) {
+    const e = a.entries;
+    const last = lastOf(a);
+    const elapsed = now - last;
+    if (e.length < 2) return { last, elapsed, state: 'new' };
+    const avg = (last - e[0]) / (e.length - 1);
+    if (avg < MIN) return { last, elapsed, state: 'new' };
+    return { last, elapsed, avg, state: elapsed > avg ? 'late' : 'ok' };
+  }
+  function statusText(st) {
+    if (st.state === 'new') return 'Setelah dicatat dua kali, jarak rata-ratanya muncul di sini.';
+    if (st.state === 'ok') return `Biasanya tiap ${approx(st.avg)}, berarti sekitar ${approx(st.avg - st.elapsed)} lagi.`;
+    return `Lewat ${approx(st.elapsed - st.avg)} dari biasanya (tiap ${approx(st.avg)}).`;
+  }
+  function toLocalInput(ts) {
+    const d = new Date(ts);
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+
+  // ---------- State ----------
+  let state = { sort: 'oldest', theme: null, activities: [] };
+  const openIds = new Set();
+  let busy = false;
+  const byId = (id) => state.activities.find((a) => a.id === id);
+
+  async function persist() {
+    const ok = await store.save(state);
+    if (!ok) toast('Catatan belum tersimpan. Coba lagi.');
+  }
+
+  // ---------- Elemen ----------
+  const list = $('#list'), empty = $('#empty'), loading = $('#loading');
+  const tpl = $('#tplItem');
+  const nowEl = $('#now');
+  const nameInput = $('#nameInput'), submitBtn = $('#submitBtn');
+  const whenToggle = $('#whenToggle'), whenField = $('#whenField'), whenInput = $('#whenInput');
+  const formError = $('#formError'), chips = $('#chips'), known = $('#known');
+  const sortSel = $('#sortSel');
+  const toastEl = $('#toast'), toastMsg = $('#toastMsg'), toastUndo = $('#toastUndo');
+
+  // ---------- Render ----------
+  function sorted() {
+    const arr = [...state.activities];
+    if (state.sort === 'name') return arr.sort((a, b) => a.name.localeCompare(b.name, 'id'));
+    arr.sort((a, b) => lastOf(a) - lastOf(b));
+    return state.sort === 'newest' ? arr.reverse() : arr;
+  }
+
+  function render() {
+    const now = Date.now();
+    list.textContent = '';
+    empty.hidden = state.activities.length > 0;
+    for (const a of sorted()) {
+      const li = tpl.content.firstElementChild.cloneNode(true);
+      li.dataset.id = a.id;
+      li.dataset.depth = String(Math.min(a.entries.length - 1, 2));
+      $('.name', li).textContent = a.name;
+      const hist = $('.history', li);
+      hist.id = 'hist-' + a.id;
+      const hb = $('.hist', li);
+      hb.setAttribute('aria-controls', hist.id);
+      hb.textContent = `Riwayat (${a.entries.length})`;
+      if (openIds.has(a.id)) { hist.hidden = false; hb.setAttribute('aria-expanded', 'true'); }
+      fillHistory(a, $('.hlist', li));
+      paint(li, a, now);
+      list.appendChild(li);
+    }
+    renderChips();
+    known.textContent = '';
+    for (const a of state.activities) {
+      const o = document.createElement('option');
+      o.value = a.name;
+      known.appendChild(o);
+    }
+  }
+
+  // Bagian yang berubah tiap detik
+  function paint(li, a, now) {
+    const st = stats(a, now);
+    if (li.dataset.state !== st.state) li.dataset.state = st.state;
+    const [n, unit] = pageValue(st.elapsed);
+    const num = $('.num', li);
+    const ns = String(n);
+    if (num.textContent !== ns) {
+      num.textContent = ns;
+      num.className = 'num' + (ns.length >= 4 ? ' len4' : ns.length === 3 ? ' len3' : '');
+    }
+    $('.unit', li).textContent = unit;
+    $('.month', li).textContent = fmtMonth.format(st.last);
+    $('.tick', li).textContent = precise(st.elapsed) + ' yang lalu';
+    $('.last', li).textContent = 'Terakhir ' + fmtDate.format(st.last);
+    $('.status', li).textContent = statusText(st);
+  }
+
+  function fillHistory(a, ol) {
+    ol.textContent = '';
+    const e = a.entries;
+    for (let i = e.length - 1; i >= 0; i--) {
+      const row = document.createElement('li');
+      const d = document.createElement('span');
+      d.className = 'hdate';
+      d.textContent = fmtDate.format(e[i]);
+      const g = document.createElement('span');
+      g.className = 'hgap';
+      g.textContent = i > 0 ? `${approx(e[i] - e[i - 1])} setelah sebelumnya` : 'Catatan pertama';
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'link danger del-entry';
+      b.dataset.ts = String(e[i]);
+      b.textContent = 'Hapus';
+      row.append(d, b, g);
+      ol.appendChild(row);
+    }
+  }
+
+  function renderChips() {
+    chips.textContent = '';
+    const have = new Set(state.activities.map((a) => norm(a.name)));
+    const pick = SUGGEST.filter((s) => !have.has(norm(s))).slice(0, 6);
+    chips.hidden = state.activities.length >= 3 || pick.length === 0;
+    for (const s of pick) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.textContent = s;
+      b.addEventListener('click', () => { nameInput.value = s; hideError(); nameInput.focus(); });
+      chips.appendChild(b);
+    }
+  }
+
+  function tick() {
+    const now = Date.now();
+    nowEl.textContent = 'Sekarang ' + fmtNow.format(now);
+    for (const li of list.children) {
+      const a = byId(li.dataset.id);
+      if (a) paint(li, a, now);
+    }
+  }
+
+  // ---------- Animasi coret ----------
+  // Salinan halaman lama ditaruh di atas, angkanya dicoret, lalu memudar.
+  function scratchOut(li) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return Promise.resolve();
+    const sheet = $('.sheet', li);
+    if (!sheet) return Promise.resolve();
+    const r = sheet.getBoundingClientRect();
+    const clone = sheet.cloneNode(true);
+    clone.classList.add('scratch');
+    clone.classList.remove('fresh');
+    Object.assign(clone.style, { left: r.left + 'px', top: r.top + 'px' });
+    const st = li.dataset.state;
+    if (st === 'late') Object.assign(clone.querySelector('.num').style, { color: 'var(--red)', transform: 'scale(.8)' });
+    if (st === 'late') clone.querySelector('.circle').style.cssText = 'display:inline;stroke:var(--red);stroke-width:2.2';
+    if (st === 'new') clone.querySelector('.num').style.color = 'var(--muted)';
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 92 112');
+    const zig = document.createElementNS(NS, 'path');
+    zig.setAttribute('class', 'zig');
+    zig.setAttribute('pathLength', '1');
+    zig.setAttribute('d', 'M20 42 L72 38 L18 52 L75 49 L19 63 L73 60 L22 72');
+    svg.appendChild(zig);
+    clone.appendChild(svg);
+    document.body.appendChild(clone);
+    clone.addEventListener('animationend', (e) => { if (e.animationName === 'fadeaway') clone.remove(); });
+    setTimeout(() => clone.remove(), 1400);
+    return new Promise((res) => setTimeout(res, 400));
+  }
+
+  // ---------- Aksi ----------
+  async function addEntry(rawName, ts) {
+    const snap = JSON.stringify(state);
+    const key = norm(rawName);
+    let a = state.activities.find((x) => norm(x.name) === key);
+    if (!a) {
+      a = { id: uid(), name: tidy(rawName), entries: [] };
+      state.activities.push(a);
+    }
+    a.entries.push(ts);
+    a.entries.sort((x, y) => x - y);
+    render();
+    const sheet = list.querySelector(`[data-id="${a.id}"] .sheet`);
+    if (sheet) sheet.classList.add('fresh');
+    toast(`${a.name} dicatat`, snap);
+    await persist();
+  }
+
+  async function submit() {
+    const raw = nameInput.value;
+    if (!raw.trim()) {
+      showError('Tulis dulu nama kegiatannya, misalnya cukur rambut.');
+      nameInput.focus();
+      return;
+    }
+    let ts = Date.now();
+    if (!whenField.hidden && whenInput.value) {
+      const t = new Date(whenInput.value).getTime();
+      if (Number.isNaN(t)) { showError('Format waktunya belum benar.'); whenInput.focus(); return; }
+      if (t > Date.now() + MIN) { showError('Waktunya tidak boleh di masa depan.'); whenInput.focus(); return; }
+      ts = Math.min(t, Date.now());
+    }
+    hideError();
+    if (busy) return;
+    busy = true;
+    try {
+      nameInput.value = '';
+      closeWhen();
+      const existing = state.activities.find((x) => norm(x.name) === norm(raw));
+      if (existing && ts >= lastOf(existing)) {
+        const li = list.querySelector(`[data-id="${existing.id}"]`);
+        if (li) await scratchOut(li);
+      }
+      await addEntry(raw, ts);
+    } finally { busy = false; }
+  }
+
+  function showError(msg) { formError.textContent = msg; formError.hidden = false; }
+  function hideError() { formError.hidden = true; }
+
+  function closeWhen() {
+    whenField.hidden = true;
+    whenToggle.setAttribute('aria-expanded', 'false');
+    whenToggle.textContent = 'Bukan barusan? Atur waktunya';
+  }
+
+  submitBtn.addEventListener('click', submit);
+  nameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); submit(); }
+  });
+  nameInput.addEventListener('input', hideError);
+  whenInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); submit(); }
+  });
+
+  whenToggle.addEventListener('click', () => {
+    const opening = whenField.hidden;
+    if (opening) {
+      const now = toLocalInput(Date.now());
+      whenInput.value = now;
+      whenInput.max = now;
+      whenField.hidden = false;
+      whenToggle.setAttribute('aria-expanded', 'true');
+      whenToggle.textContent = 'Pakai waktu sekarang';
+      whenInput.focus();
+    } else {
+      closeWhen();
+    }
+  });
+
+  sortSel.addEventListener('change', () => {
+    state.sort = sortSel.value;
+    render();
+    persist();
+  });
+
+  list.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const li = btn.closest('.item');
+    const a = li && byId(li.dataset.id);
+    if (!a) return;
+
+    if (btn.classList.contains('again')) {
+      if (busy) return;
+      busy = true;
+      try {
+        await scratchOut(li);
+        await addEntry(a.name, Date.now());
+      } finally { busy = false; }
+      return;
+    }
+    if (btn.classList.contains('hist')) {
+      const h = $('.history', li);
+      const opening = h.hidden;
+      h.hidden = !opening;
+      btn.setAttribute('aria-expanded', String(opening));
+      opening ? openIds.add(a.id) : openIds.delete(a.id);
+      return;
+    }
+    if (btn.classList.contains('del-entry')) {
+      const snap = JSON.stringify(state);
+      const ts = Number(btn.dataset.ts);
+      if (a.entries.length === 1) {
+        state.activities = state.activities.filter((x) => x.id !== a.id);
+        toast(`${a.name} dihapus`, snap);
+      } else {
+        a.entries.splice(a.entries.indexOf(ts), 1);
+        toast('Catatan dihapus', snap);
+      }
+      render();
+      await persist();
+      return;
+    }
+    if (btn.classList.contains('del-act')) {
+      const snap = JSON.stringify(state);
+      state.activities = state.activities.filter((x) => x.id !== a.id);
+      openIds.delete(a.id);
+      render();
+      toast(`${a.name} dihapus`, snap);
+      await persist();
+    }
+  });
+
+  // ---------- Notifikasi dengan tombol Batalkan ----------
+  let toastTimer;
+  function toast(msg, undoSnap) {
+    toastMsg.textContent = msg;
+    toastUndo.hidden = !undoSnap;
+    toastUndo.onclick = undoSnap ? async () => {
+      const theme = state.theme;
+      state = JSON.parse(undoSnap);
+      state.theme = theme;
+      sortSel.value = state.sort;
+      render();
+      hideToast();
+      await persist();
+    } : null;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 5000);
+  }
+  function hideToast() { toastEl.classList.remove('show'); }
+
+  // ---------- Tema terang / gelap ----------
+  const themeBtn = $('#themeBtn'), sunIcon = $('#sunIcon'), moonIcon = $('#moonIcon');
+  const themeMeta = $('#themeColor'), themeNote = $('#themeNote'), themeNoteText = $('#themeNoteText');
+  const sysDark = matchMedia('(prefers-color-scheme: dark)');
+  const effectiveTheme = () => state.theme || (sysDark.matches ? 'dark' : 'light');
+
+  function applyTheme() {
+    const root = document.documentElement;
+    if (state.theme) root.dataset.theme = state.theme;
+    else delete root.dataset.theme;
+    const dark = effectiveTheme() === 'dark';
+    themeMeta.setAttribute('content', dark ? '#1C2027' : '#FFFFFF');
+    const label = dark ? 'Ganti ke mode terang' : 'Ganti ke mode gelap';
+    themeBtn.setAttribute('aria-label', label);
+    themeBtn.title = label;
+    // Ikon menunjukkan mode tujuan: matahari saat gelap, bulan saat terang
+    if (dark) { sunIcon.removeAttribute('hidden'); moonIcon.setAttribute('hidden', ''); }
+    else { moonIcon.removeAttribute('hidden'); sunIcon.setAttribute('hidden', ''); }
+    themeNote.hidden = !state.theme;
+    themeNoteText.textContent = state.theme === 'dark' ? 'Mode gelap dipilih manual.' : 'Mode terang dipilih manual.';
+  }
+
+  themeBtn.addEventListener('click', () => {
+    state.theme = effectiveTheme() === 'dark' ? 'light' : 'dark';
+    applyTheme();
+    persist();
+  });
+  $('#followBtn').addEventListener('click', () => {
+    state.theme = null;
+    applyTheme();
+    persist();
+    themeBtn.focus();
+  });
+  sysDark.addEventListener('change', applyTheme);
+  applyTheme();
+
+  // ---------- Contoh data ----------
+  $('#seedBtn').addEventListener('click', async () => {
+    const now = Date.now();
+    const ago = (days, hours = 0) => now - days * DAY - hours * HOUR - Math.floor(Math.random() * 50) * MIN;
+    state.activities = [
+      { id: uid(), name: 'Cukur rambut', entries: [ago(115, 2), ago(87, 5), ago(59, 1), ago(31, 3)] },
+      { id: uid(), name: 'Ganti oli motor', entries: [ago(98), ago(40, 6)] },
+      { id: uid(), name: 'Potong kuku', entries: [ago(19, 2), ago(11, 4), ago(4, 1)] },
+      { id: uid(), name: 'Ganti sprei', entries: [ago(0, 2)] }
+    ];
+    render();
+    toast('Contoh data dimuat');
+    await persist();
+  });
+
+  // ---------- Pasang sebagai aplikasi ----------
+  const installBtn = $('#installBtn');
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.hidden = false;
+  });
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    installBtn.hidden = true;
+  });
+  window.addEventListener('appinstalled', () => { installBtn.hidden = true; });
+
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  if (isIOS && !standalone) $('#iosHint').hidden = false;
+
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+
+  // ---------- Mulai ----------
+  (async () => {
+    const data = await store.load();
+    if (data && Array.isArray(data.activities)) {
+      state = {
+        sort: ['oldest', 'newest', 'name'].includes(data.sort) ? data.sort : 'oldest',
+        theme: ['light', 'dark'].includes(data.theme) ? data.theme : null,
+        activities: data.activities.filter((a) => a && a.id && a.name && Array.isArray(a.entries) && a.entries.length)
+      };
+    }
+    sortSel.value = state.sort;
+    applyTheme();
+    loading.hidden = true;
+    render();
+    tick();
+    setInterval(tick, 1000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+  })();
+})();
+</script>
+</body>
+</html>

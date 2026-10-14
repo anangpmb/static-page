@@ -220,8 +220,8 @@
   .item[data-depth="2"] .s1,
   .item[data-depth="2"] .s2 { display: inline; }
   .item[data-state="late"] .circle { display: inline; stroke: var(--red); stroke-width: 2.2; }
-  .month, .num, .unit { position: absolute; left: 0; right: 0; text-align: center; }
-  .month { top: 12px; font-size: .7rem; color: var(--muted); }
+  .date, .num, .unit { position: absolute; left: 0; right: 0; text-align: center; }
+  .date { top: 12px; font-size: .7rem; color: var(--muted); white-space: nowrap; }
   .num {
     top: 30px;
     height: 50px;
@@ -453,7 +453,7 @@
         <path class="doodle-line" d="M58 15 C 55 3, 67 1, 65 13"/>
         <path class="circle doodle-line" d="M16 64 C 8 40, 74 25, 83 50 C 90 76, 30 88, 12 68 C 5 56, 22 31, 58 30"/>
       </svg>
-      <span class="month"></span>
+      <span class="date"></span>
       <span class="num hand"></span>
       <span class="unit"></span>
     </div>
@@ -515,41 +515,62 @@
 
   const fmtDate = new Intl.DateTimeFormat('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   const fmtNow = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  const fmtMonth = new Intl.DateTimeFormat('id-ID', { month: 'short', year: 'numeric' });
+  // Tanggal di kepala halaman kalender: "4 Sep", tahun hanya ditulis bila bukan tahun ini
+  const fmtDay = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' });
+  const fmtDayYear = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  const sheetDate = (ts, now) => (new Date(ts).getFullYear() === new Date(now).getFullYear() ? fmtDay : fmtDayYear).format(ts);
 
-  function split(ms) {
-    ms = Math.max(0, ms);
+  const UNITS = ['tahun', 'bulan', 'hari', 'jam', 'menit', 'detik'];
+
+  // Tanggal yang sama n bulan kemudian; dipotong ke akhir bulan bila tidak ada (31 Jan + 1 bulan = 28/29 Feb)
+  function addMonths(ts, n) {
+    const d = new Date(ts);
+    const day = d.getDate();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + n);
+    d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+    return d.getTime();
+  }
+  // Selisih ala kalender: [tahun, bulan, hari, jam, menit, detik]
+  function split(from, to) {
+    to = Math.max(from, to);
+    const a = new Date(from), b = new Date(to);
+    let mo = (b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth();
+    if (addMonths(from, mo) > to) mo--;
+    let ms = to - addMonths(from, mo);
     const d = Math.floor(ms / DAY); ms -= d * DAY;
     const h = Math.floor(ms / HOUR); ms -= h * HOUR;
     const m = Math.floor(ms / MIN); ms -= m * MIN;
-    return { d, h, m, s: Math.floor(ms / SEC) };
+    return [Math.floor(mo / 12), mo % 12, d, h, m, Math.floor(ms / SEC)];
   }
-  // "23 hari 3 jam 12 menit 5 detik"
-  function precise(ms) {
-    const { d, h, m, s } = split(ms);
-    const out = [];
-    if (d) out.push(d + ' hari');
-    if (d || h) out.push(h + ' jam');
-    if (d || h || m) out.push(m + ' menit');
-    out.push(s + ' detik');
-    return out.join(' ');
+  // Indeks satuan terbesar yang tidak nol (detik bila semuanya nol)
+  const lead = (v) => { const i = v.findIndex((n) => n); return i < 0 ? v.length - 1 : i; };
+  // "1 tahun 2 bulan 3 hari 4 jam 12 menit 5 detik"
+  function precise(from, to) {
+    const v = split(from, to);
+    const i = lead(v);
+    return v.slice(i).map((n, k) => n + ' ' + UNITS[i + k]).join(' ');
   }
-  // "28 hari", "3 bulan", "1,5 tahun"
+  // "28 hari", "1 bulan 10 hari", "1 tahun 2 bulan"
   function approx(ms) {
     ms = Math.abs(ms);
     if (ms < HOUR) return Math.max(1, Math.round(ms / MIN)) + ' menit';
     if (ms < 2 * DAY) return Math.round(ms / HOUR) + ' jam';
-    if (ms < 60 * DAY) return Math.round(ms / DAY) + ' hari';
-    if (ms < 730 * DAY) return Math.round(ms / (30.44 * DAY)) + ' bulan';
-    return String(Math.round(ms / (365.25 * DAY) * 10) / 10).replace('.', ',') + ' tahun';
+    const days = Math.round(ms / DAY);
+    if (days < 30) return days + ' hari';
+    let mo = Math.floor(days / 30.44);
+    let d = Math.round(days - mo * 30.44);
+    if (d >= 29) { mo++; d = 0; }
+    if (mo < 12) return mo + ' bulan' + (d ? ` ${d} hari` : '');
+    const y = Math.floor(mo / 12);
+    mo %= 12;
+    return y + ' tahun' + (mo ? ` ${mo} bulan` : '');
   }
-  // Angka besar di halaman kalender
-  function pageValue(ms) {
-    const { d, h, m, s } = split(ms);
-    if (d) return [d, 'hari lalu'];
-    if (h) return [h, 'jam lalu'];
-    if (m) return [m, 'menit lalu'];
-    return [s, 'detik lalu'];
+  // Angka besar di halaman kalender: satuan terbesar saja
+  function pageValue(from, to) {
+    const v = split(from, to);
+    const i = lead(v);
+    return [v[i], UNITS[i] + ' lalu'];
   }
   function stats(a, now) {
     const e = a.entries;
@@ -632,7 +653,7 @@
   function paint(li, a, now) {
     const st = stats(a, now);
     if (li.dataset.state !== st.state) li.dataset.state = st.state;
-    const [n, unit] = pageValue(st.elapsed);
+    const [n, unit] = pageValue(st.last, now);
     const num = $('.num', li);
     const ns = String(n);
     if (num.textContent !== ns) {
@@ -640,8 +661,8 @@
       num.className = 'num' + (ns.length >= 4 ? ' len4' : ns.length === 3 ? ' len3' : '');
     }
     $('.unit', li).textContent = unit;
-    $('.month', li).textContent = fmtMonth.format(st.last);
-    $('.tick', li).textContent = precise(st.elapsed) + ' yang lalu';
+    $('.date', li).textContent = sheetDate(st.last, now);
+    $('.tick', li).textContent = precise(st.last, now) + ' yang lalu';
     $('.last', li).textContent = 'Terakhir ' + fmtDate.format(st.last);
     $('.status', li).textContent = statusText(st);
   }

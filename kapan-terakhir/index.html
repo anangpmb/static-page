@@ -83,8 +83,8 @@
   .now { margin: 0; color: var(--muted); font-size: .875rem; }
 
   /* Kotak bergaris tangan: garisnya digambar di ::before lalu "digoyang" dengan filter */
-  .btn, .chip, .toast { position: relative; isolation: isolate; }
-  .btn::before, .chip::before, .toast::before {
+  .btn, .chip, .toast, .tip { position: relative; isolation: isolate; }
+  .btn::before, .chip::before, .toast::before, .tip::before {
     content: "";
     position: absolute;
     inset: 0;
@@ -249,8 +249,16 @@
   .item[data-state="new"] .status { color: var(--muted); }
   .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; }
 
-  /* Riwayat */
-  .history { grid-column: 1 / -1; position: relative; margin-top: 16px; padding: 0 0 4px 18px; }
+  /* Riwayat: peta kotak per hari, satu kolom per minggu */
+  .history {
+    --cell: 14px;
+    --gap: 3px;
+    --step: calc(var(--cell) + var(--gap));
+    grid-column: 1 / -1;
+    position: relative;
+    margin-top: 16px;
+    padding: 0 0 4px 18px;
+  }
   .history::before {
     content: "";
     position: absolute;
@@ -259,18 +267,69 @@
     border-left: 2px solid var(--soft);
     filter: url(#rough);
   }
-  .hlist { list-style: none; margin: 0 0 8px; padding: 0; }
-  .hlist li {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    column-gap: 12px;
-    align-items: baseline;
-    padding: 9px 0;
-    border-bottom: 1.5px dashed var(--soft);
+  .heat { display: flex; gap: 6px; font-size: .7rem; color: var(--muted); }
+  .heat-days { flex: none; display: grid; grid-template-rows: repeat(7, var(--cell)); row-gap: var(--gap); padding-top: 23px; line-height: var(--cell); }
+  .heat-scroll { flex: 1; min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; padding: 3px 3px 8px; }
+  .heat-inner { width: max-content; }
+  .heat-months { position: relative; height: 20px; }
+  .heat-months span { position: absolute; top: 0; left: calc(var(--c) * var(--step)); white-space: nowrap; }
+  .heat-months span.end { left: auto; right: 0; }
+  .heat-grid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, var(--cell)); grid-auto-columns: var(--cell); gap: var(--gap); }
+  .cell {
+    position: relative;
+    display: block;
+    width: var(--cell);
+    height: var(--cell);
+    padding: 0;
+    border: 0;
+    border-radius: 4px 3px 4px 3px / 3px 4px 3px 4px;
+    background: var(--dot);
   }
-  .hdate { font-weight: 600; font-variant-numeric: tabular-nums; }
-  .hgap { grid-column: 1; font-size: .85rem; color: var(--muted); }
-  .hlist .link { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-size: .9rem; }
+  .cell.l1 { background: color-mix(in srgb, var(--ink) 35%, var(--paper)); }
+  .cell.l2 { background: color-mix(in srgb, var(--ink) 58%, var(--paper)); }
+  .cell.l3 { background: color-mix(in srgb, var(--ink) 80%, var(--paper)); }
+  .cell.l4 { background: var(--ink); }
+  button.cell { cursor: pointer; }
+  button.cell::after { content: ""; position: absolute; inset: calc(var(--gap) / -2); }
+  .cell:focus-visible { outline-offset: 1px; border-radius: 4px 3px 4px 3px / 3px 4px 3px 4px; }
+  .cell[aria-expanded="true"] { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .heat-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; margin: 2px 0 14px; font-size: .8rem; color: var(--muted); }
+  .legend { --cell: 11px; display: flex; align-items: center; gap: 3px; }
+  .legend .cell:first-of-type { margin-left: 3px; }
+  .legend .cell:last-of-type { margin-right: 3px; }
+
+  /* Detail satu hari, muncul saat kotak berisi diketuk */
+  .tip {
+    position: absolute;
+    z-index: 10;
+    width: max-content;
+    max-width: min(280px, 100%);
+    padding: 10px 14px 10px 16px;
+    color: var(--ink);
+    font-size: .875rem;
+    animation: tipIn .15s ease-out;
+  }
+  .tip::after {
+    content: "";
+    position: absolute;
+    left: calc(var(--x) - 6px);
+    bottom: -6px;
+    width: 10px;
+    height: 10px;
+    background: var(--paper);
+    border: solid var(--ink);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .tip.below::after { bottom: auto; top: -6px; border-width: 2px 0 0 2px; }
+  .tip-date { margin: 0 0 2px; font-weight: 700; }
+  .tip ul { list-style: none; margin: 0; padding: 0; }
+  .tip li { display: grid; grid-template-columns: 1fr auto; column-gap: 16px; align-items: baseline; padding: 5px 0; }
+  .tip li + li { border-top: 1.5px dashed var(--soft); }
+  .tip-time { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tip-gap { grid-column: 1; font-size: .8rem; color: var(--muted); }
+  .tip .link { grid-row: 1 / span 2; grid-column: 2; align-self: center; }
+  @keyframes tipIn { from { opacity: 0; transform: translateY(4px); } }
 
   /* Kosong & memuat */
   .empty { display: grid; grid-template-columns: 92px 1fr; column-gap: 18px; align-items: center; }
@@ -300,7 +359,7 @@
     transition: opacity .2s, transform .2s, visibility 0s .2s;
     z-index: 30;
   }
-  .toast::before {
+  .toast::before, .tip::before {
     background: var(--paper);
     border: 2px solid var(--ink);
     border-radius: 14px 10px 16px 9px / 9px 16px 10px 14px;
@@ -336,6 +395,7 @@
     .scratch { display: none; }
     .sheet.fresh .num, .sheet.fresh .unit { animation: none; }
     .btn::before, .toast, .toast.show { transition: none; }
+    .tip { animation: none; }
   }
 </style>
 </head>
@@ -468,7 +528,19 @@
       </div>
     </div>
     <div class="history" hidden>
-      <ol class="hlist"></ol>
+      <div class="heat">
+        <div class="heat-days" aria-hidden="true"><span>Sen</span><span></span><span>Rab</span><span></span><span>Jum</span><span></span><span></span></div>
+        <div class="heat-scroll">
+          <div class="heat-inner">
+            <div class="heat-months" aria-hidden="true"></div>
+            <div class="heat-grid" role="group" aria-label="Peta riwayat per hari"></div>
+          </div>
+        </div>
+      </div>
+      <div class="heat-foot">
+        <span>Ketuk kotak yang terisi untuk melihat detail.</span>
+        <span class="legend" aria-hidden="true">Sedikit<i class="cell"></i><i class="cell l1"></i><i class="cell l2"></i><i class="cell l3"></i><i class="cell l4"></i>Banyak</span>
+      </div>
       <button type="button" class="link danger del-act">Hapus kegiatan ini</button>
     </div>
   </li>
@@ -519,6 +591,10 @@
   const fmtDay = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' });
   const fmtDayYear = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
   const sheetDate = (ts, now) => (new Date(ts).getFullYear() === new Date(now).getFullYear() ? fmtDay : fmtDayYear).format(ts);
+  const fmtDayFull = new Intl.DateTimeFormat('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  const fmtTime = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit' });
+  const fmtMon = new Intl.DateTimeFormat('id-ID', { month: 'short' });
+  const dayKey = (ts) => { const d = new Date(ts); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
 
   const UNITS = ['tahun', 'bulan', 'hari', 'jam', 'menit', 'detik'];
 
@@ -623,6 +699,12 @@
 
   function render() {
     const now = Date.now();
+    closeTip();
+    // Posisi geser peta yang sedang terbuka, dihitung dari ujung kanan agar tetap di tempat setelah digambar ulang
+    const fromRight = new Map();
+    for (const sc of list.querySelectorAll('.history:not([hidden]) .heat-scroll')) {
+      fromRight.set(sc.closest('.item').dataset.id, sc.scrollWidth - sc.clientWidth - sc.scrollLeft);
+    }
     list.textContent = '';
     empty.hidden = state.activities.length > 0;
     for (const a of sorted()) {
@@ -636,9 +718,9 @@
       hb.setAttribute('aria-controls', hist.id);
       hb.textContent = `Riwayat (${a.entries.length})`;
       if (openIds.has(a.id)) { hist.hidden = false; hb.setAttribute('aria-expanded', 'true'); }
-      fillHistory(a, $('.hlist', li));
       paint(li, a, now);
       list.appendChild(li);
+      if (openIds.has(a.id)) showHeat(li, a, fromRight.get(a.id));
     }
     renderChips();
     known.textContent = '';
@@ -667,26 +749,145 @@
     $('.status', li).textContent = statusText(st);
   }
 
-  function fillHistory(a, ol) {
-    ol.textContent = '';
+  // Peta riwayat: satu kolom per minggu (Senin di atas), satu kotak per hari.
+  // Paling sedikit setahun ke belakang, lebih panjang bila catatan pertamanya lebih lama.
+  function fillHeat(a, hist) {
+    const counts = new Map();
+    for (const t of a.entries) counts.set(dayKey(t), (counts.get(dayKey(t)) || 0) + 1);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const d = new Date(today);
+    d.setDate(d.getDate() - 364);
+    if (a.entries[0] < d.getTime()) { d.setTime(a.entries[0]); d.setHours(0, 0, 0, 0); }
+    d.setDate(d.getDate() - (d.getDay() + 6) % 7); // mundur ke Senin
+
+    const cells = document.createDocumentFragment();
+    const labels = [];
+    let col = 0;
+    for (; d <= today; d.setDate(d.getDate() + 1)) {
+      const row = (d.getDay() + 6) % 7;
+      // Nama bulan di atas kolom pertama yang Seninnya masuk bulan baru; Januari ditulis tahunnya
+      if (row === 0 && (!labels.length || labels[labels.length - 1].m !== d.getMonth())) {
+        labels.push({ col, m: d.getMonth(), text: d.getMonth() ? fmtMon.format(d) : String(d.getFullYear()) });
+      }
+      const key = dayKey(d.getTime());
+      const n = counts.get(key) || 0;
+      let c;
+      if (n) {
+        c = document.createElement('button');
+        c.type = 'button';
+        c.className = 'cell l' + Math.min(n, 4);
+        c.dataset.day = key;
+        c.setAttribute('aria-expanded', 'false');
+        c.setAttribute('aria-label', `${fmtDayFull.format(d)}, ${n} catatan`);
+      } else {
+        c = document.createElement('span');
+        c.className = 'cell';
+      }
+      cells.appendChild(c);
+      if (row === 6) col++;
+    }
+    const cols = Math.ceil(cells.childNodes.length / 7);
+    // Label kolom pertama dibuang bila terlalu dekat dengan label berikutnya
+    if (labels.length > 1 && labels[1].col - labels[0].col < 3) labels.shift();
+
+    const months = $('.heat-months', hist), grid = $('.heat-grid', hist);
+    months.textContent = '';
+    grid.textContent = '';
+    for (const l of labels) {
+      const s = document.createElement('span');
+      s.style.setProperty('--c', l.col);
+      if (cols - l.col < 3) s.className = 'end';
+      s.textContent = l.text;
+      months.appendChild(s);
+    }
+    grid.appendChild(cells);
+  }
+
+  // Gambar peta lalu geser ke minggu ini, atau kembali ke posisi geser sebelumnya
+  function showHeat(li, a, fromRight = 0) {
+    const sc = $('.heat-scroll', li);
+    fillHeat(a, $('.history', li));
+    sc.scrollLeft = sc.scrollWidth - sc.clientWidth - fromRight;
+    sc.addEventListener('scroll', onHeatScroll, { passive: true });
+  }
+
+  // ---------- Detail hari di peta riwayat ----------
+  let tip = null; // { el, cell, scrollLeft }
+  // Tutup detail hanya bila petanya benar-benar digeser, bukan karena event dari posisi awal yang datang terlambat
+  function onHeatScroll() {
+    if (tip && Math.abs(tip.cell.closest('.heat-scroll').scrollLeft - tip.scrollLeft) > 1) closeTip();
+  }
+  function closeTip() {
+    if (!tip) return;
+    tip.el.remove();
+    tip.cell.setAttribute('aria-expanded', 'false');
+    tip = null;
+  }
+  function openTip(li, a, cell, viaKeyboard) {
+    closeTip();
+    const hist = $('.history', li);
     const e = a.entries;
-    for (let i = e.length - 1; i >= 0; i--) {
+    const el = document.createElement('div');
+    el.className = 'tip';
+    el.setAttribute('role', 'dialog');
+    const head = document.createElement('p');
+    head.className = 'tip-date';
+    const ul = document.createElement('ul');
+    for (let i = 0; i < e.length; i++) {
+      if (dayKey(e[i]) !== cell.dataset.day) continue;
+      head.textContent = fmtDayFull.format(e[i]);
+      const time = fmtTime.format(e[i]);
       const row = document.createElement('li');
-      const d = document.createElement('span');
-      d.className = 'hdate';
-      d.textContent = fmtDate.format(e[i]);
+      const t = document.createElement('span');
+      t.className = 'tip-time';
+      t.textContent = 'Pukul ' + time;
       const g = document.createElement('span');
-      g.className = 'hgap';
+      g.className = 'tip-gap';
       g.textContent = i > 0 ? `${approx(e[i] - e[i - 1])} setelah sebelumnya` : 'Catatan pertama';
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'link danger del-entry';
       b.dataset.ts = String(e[i]);
       b.textContent = 'Hapus';
-      row.append(d, b, g);
-      ol.appendChild(row);
+      b.setAttribute('aria-label', `Hapus catatan pukul ${time}`);
+      row.append(t, b, g);
+      ul.appendChild(row);
     }
+    el.setAttribute('aria-label', head.textContent);
+    el.append(head, ul);
+    hist.appendChild(el);
+
+    // Di atas kotak bila muat di layar, kalau tidak di bawahnya; tetap di dalam lebar panel
+    const hr = hist.getBoundingClientRect(), cr = cell.getBoundingClientRect();
+    const w = el.offsetWidth, h = el.offsetHeight;
+    const cx = cr.left + cr.width / 2 - hr.left;
+    const left = Math.max(0, Math.min(cx - w / 2, hr.width - w));
+    const above = cr.top - h - 10 > 8;
+    el.classList.toggle('below', !above);
+    el.style.left = left + 'px';
+    el.style.top = (above ? cr.top - hr.top - h - 10 : cr.bottom - hr.top + 10) + 'px';
+    el.style.setProperty('--x', (cx - left) + 'px');
+    cell.setAttribute('aria-expanded', 'true');
+    tip = { el, cell, scrollLeft: cell.closest('.heat-scroll').scrollLeft };
+    if (viaKeyboard) el.querySelector('button').focus();
   }
+
+  document.addEventListener('click', (e) => {
+    if (tip && !e.target.closest('.tip, .cell')) closeTip();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !tip) return;
+    const cell = tip.cell;
+    closeTip();
+    cell.focus();
+  });
+  let lastWidth = window.innerWidth;
+  window.addEventListener('resize', () => {
+    if (window.innerWidth === lastWidth) return;
+    lastWidth = window.innerWidth;
+    closeTip();
+  });
 
   function renderChips() {
     chips.textContent = '';
@@ -849,7 +1050,12 @@
       const opening = h.hidden;
       h.hidden = !opening;
       btn.setAttribute('aria-expanded', String(opening));
-      opening ? openIds.add(a.id) : openIds.delete(a.id);
+      if (opening) { openIds.add(a.id); showHeat(li, a); } else openIds.delete(a.id);
+      return;
+    }
+    if (btn.classList.contains('cell')) {
+      if (tip && tip.cell === btn) closeTip();
+      else openTip(li, a, btn, e.detail === 0);
       return;
     }
     if (btn.classList.contains('del-entry')) {

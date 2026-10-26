@@ -1,0 +1,262 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  line-height: 1.65;
+  color: #e7f0ea;
+  background: #07140f;
+  background-image: radial-gradient(circle at 15% 0%, rgba(198, 244, 50, 0.08), transparent 45%),
+    radial-gradient(circle at 85% 100%, rgba(34, 197, 94, 0.08), transparent 45%);
+  background-attachment: fixed;
+  padding: 24px 16px;
+}
+
+.container {
+  max-width: 780px;
+  margin: 0 auto;
+  background: rgba(16, 36, 28, 0.88);
+  border: 1px solid rgba(198, 244, 50, 0.12);
+  padding: 48px 40px;
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: #c6f432;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.brand-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #22c55e, #c6f432);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.updated {
+  color: #8ea898;
+  font-size: 14px;
+  margin-bottom: 32px;
+}
+
+.updated strong {
+  color: #b9cbbf;
+}
+
+h2 {
+  font-size: 22px;
+  font-weight: 700;
+  margin-top: 36px;
+  margin-bottom: 12px;
+  color: #ffffff;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(231, 240, 234, 0.1);
+}
+
+h3 {
+  font-size: 17px;
+  font-weight: 600;
+  margin-top: 24px;
+  margin-bottom: 10px;
+  color: #f1f7f3;
+}
+
+p {
+  margin-bottom: 14px;
+  color: #c3d3c9;
+  font-size: 15px;
+}
+
+ul,
+ol {
+  margin: 12px 0 14px 0;
+  padding-left: 24px;
+}
+
+li {
+  margin-bottom: 8px;
+  color: #c3d3c9;
+  font-size: 15px;
+}
+
+a {
+  color: #c6f432;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+code {
+  background: rgba(231, 240, 234, 0.08);
+  color: #e7f0ea;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', Consolas, monospace;
+  word-break: break-word;
+}
+
+.tldr {
+  background: rgba(198, 244, 50, 0.08);
+  border-left: 4px solid #c6f432;
+  padding: 18px 22px;
+  border-radius: 10px;
+  margin: 24px 0;
+}
+
+.tldr h2 {
+  margin-top: 0;
+  border: none;
+  padding: 0;
+  font-size: 15px;
+  color: #c6f432;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.tldr ul {
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+
+.tldr li {
+  color: #e7f0ea;
+}
+
+.note {
+  background: rgba(231, 240, 234, 0.05);
+  border: 1px solid rgba(231, 240, 234, 0.1);
+  padding: 14px 18px;
+  border-radius: 10px;
+  margin: 16px 0;
+}
+
+.note p:last-child {
+  margin-bottom: 0;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  margin: 16px 0 20px 0;
+  border: 1px solid rgba(231, 240, 234, 0.1);
+  border-radius: 10px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th,
+td {
+  text-align: left;
+  vertical-align: top;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(231, 240, 234, 0.08);
+  color: #c3d3c9;
+}
+
+th {
+  background: rgba(198, 244, 50, 0.07);
+  color: #ffffff;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+td:first-child {
+  color: #ffffff;
+  font-weight: 500;
+  min-width: 140px;
+}
+
+pre {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(231, 240, 234, 0.1);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 12px 0 16px 0;
+  overflow-x: auto;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #e7f0ea;
+  white-space: pre-wrap;
+}
+
+.footer {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(231, 240, 234, 0.1);
+  text-align: center;
+  color: #7d9686;
+  font-size: 13px;
+}
+
+.footer p {
+  color: #7d9686;
+  font-size: 13px;
+  margin-bottom: 0;
+}
+
+.footer a {
+  color: #b9cbbf;
+}
+
+@media (max-width: 600px) {
+  body {
+    padding: 16px 8px;
+  }
+
+  .container {
+    padding: 28px 22px;
+    border-radius: 14px;
+  }
+
+  h1 {
+    font-size: 26px;
+  }
+
+  h2 {
+    font-size: 19px;
+  }
+}

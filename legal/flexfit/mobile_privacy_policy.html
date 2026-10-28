@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="index, follow">
+  <meta name="description"
+    content="Privacy Policy for FlexFit — an Android app for route videos, gym logging, and workout sharing. No account, local storage, no data selling.">
+  <title>Privacy Policy — FlexFit</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <main class="container">
+    <div class="brand">
+      <span class="brand-dot">💪</span>
+      <span>FlexFit</span>
+    </div>
+    <h1>Privacy Policy</h1>
+    <p class="updated"><strong>Last updated:</strong> October 26, 2026 · <strong>Effective date:</strong> October 26,
+      2026</p>
+
+    <div class="tldr">
+      <h2>The short version</h2>
+      <ul>
+        <li>FlexFit has <strong>no account registration and no developer servers</strong>. Your workouts, activity files, and settings stay on your phone.</li>
+        <li>It turns activity files (GPX, TCX, FIT) into route videos and cards, and logs gym workouts on your device.</li>
+        <li>Vector map tiles are rendered on demand from OpenFreeMap without sending your personal data to map servers.</li>
+        <li>It includes optional <strong>AdMob ads</strong> (with Google UMP consent in the EEA/UK) and <strong>Google Play in-app purchases</strong> to remove ads.</li>
+        <li><strong>We (the developer) never receive your activity files or workout logs.</strong></li>
+        <li>You can export, backup, or delete your data at any time. See your <a href="data_subject_rights.html">data subject rights</a>.</li>
+      </ul>
+    </div>
+
+    <h2>1. Introduction</h2>
+    <p>This Privacy Policy explains how <strong>FlexFit</strong> (bundle <code>com.flexfit.mobile</code>, the "App") handles information when you use it. The App is an Android application that transforms activity files (GPX, TCX, FIT) into shareable animated route videos and cards, logs gym workouts set by set, syncs with the companion FlexFit Watch app (<code>com.flexfit.watch</code>), creates monthly board summaries, and allows local data backups.</p>
+    <p>The App is developed by FlexFit ("we", "us", "our"). In this policy, "your device" means your Android phone or tablet. If you also use the companion HUAWEI watch app, see the <a href="privacy_policy.html">FlexFit Watch Privacy Policy</a>.</p>
+    <p>By installing or using the App, you acknowledge this Privacy Policy. If you do not agree with it, please do not use the App.</p>
+
+    <h2>2. The data the App handles</h2>
+    <p>Everything described below is created and stored <strong>locally on your device</strong>. None of your workout logs or activity files are sent to our servers.</p>
+
+    <h3>2.1 Activity files (GPX, TCX, FIT)</h3>
+    <p>When you import or share an activity file (from file managers, Strava, Garmin Connect, Huawei Health, Zepp, Mi Fitness, etc.):</p>
+    <ul>
+      <li>The App processes GPS coordinates, timestamps, distance, duration, elevation, heart rate, cadence, power, and running dynamics from the file.</li>
+      <li>This data is processed entirely on your device to generate route videos, cards, and monthly board stickers.</li>
+      <li><strong>Privacy trimming:</strong> By default, the App trims the first and last 200 m (or user-selected 300 m / 500 m) of GPS routes to keep your start and finish locations private.</li>
+    </ul>
+
+    <h3>2.2 Logged gym workouts</h3>
+    <p>When you log a workout manually or sync from the watch app:</p>
+    <ul>
+      <li>The App stores exercises, sets, reps, weight lifted, rest timer settings, targeted body regions, and effort guesses.</li>
+      <li>This information is used to show body heatmaps, training summaries, and generate muscle card images/videos.</li>
+    </ul>
+
+    <h3>2.3 Monthly boards & settings</h3>
+    <ul>
+      <li><strong>Monthly boards:</strong> Customized story boards (stickers, layout coordinates, background choices) saved as local JSON files (<code>files/boards/board_YYYY_MM.json</code>).</li>
+      <li><strong>Preferences:</strong> Distance unit choices (km/mi), privacy trimming preferences, and saved profile settings.</li>
+    </ul>
+
+    <h3>2.4 Backups</h3>
+    <p>With <strong>Profile → Backup</strong>, the App packages your workouts, imported files, monthly boards, profile, and settings into a single <code>.zip</code> file saved to a location you choose. <strong>Restore</strong> reads this local backup file.</p>
+
+    <h3>2.5 What the App does not collect</h3>
+    <p>The App does <strong>not</strong> collect or store on developer servers:</p>
+    <ul>
+      <li>your name, email address, phone number, or account credentials (there is no account registration);</li>
+      <li>your live location or background GPS tracking;</li>
+      <li>contacts, call logs, messages, photos, microphone, or camera data.</li>
+    </ul>
+
+    <h2>3. Permissions used by the App</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Permission</th>
+            <th>Why the App needs it</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Notifications (<code>POST_NOTIFICATIONS</code>)</td>
+            <td>To notify you when your monthly summary board is ready (on the 1st of the month at 07:00).</td>
+          </tr>
+          <tr>
+            <td>File & Storage Access</td>
+            <td>To import activity files (GPX, TCX, FIT) via the system file picker and save exported videos (MP4) and cards (PNG) to your gallery (<code>Pictures/FlexFit</code>).</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>4. How the data is used</h2>
+    <p>Your data is used solely to provide the App's features to you:</p>
+    <ul>
+      <li>rendering route videos, stats cards, and muscle heatmaps;</li>
+      <li>logging workout sets, rest timers, and volume history;</li>
+      <li>receiving finished workouts from FlexFit Watch via HUAWEI Wear Engine;</li>
+      <li>compiling monthly summary boards and enabling local backup and restore;</li>
+      <li>remembering your preferences and privacy trimming settings.</li>
+    </ul>
+    <p>We do not sell, profile, or use your personal workout data for advertising.</p>
+
+    <h2>5. Third-party services & network usage</h2>
+    <p>The App uses network connectivity only for map rendering, optional advertising, and in-app purchases:</p>
+
+    <h3>5.1 Map tiles (OpenFreeMap)</h3>
+    <p>To draw quiet map backgrounds behind GPS routes, the App fetches vector map tiles on demand over HTTPS from <strong>OpenFreeMap</strong> (OpenMapTiles schema, map data © OpenStreetMap contributors). Only water, greenery, and roads are fetched. No personal workout data or account information is sent to map servers.</p>
+
+    <h3>5.2 Advertisements (Google AdMob & UMP)</h3>
+    <p>The App displays AdMob banner ads on share screens and occasional full-screen interstitial ads after exports. Google AdMob may process device identifiers, IP addresses, and coarse location data to serve ads and prevent fraud. In the European Economic Area (EEA) and the United Kingdom (UK), Google's User Messaging Platform (UMP) displays a consent prompt on first launch. You can update your ad privacy choices at any time via the <strong>Buy me a coffee</strong> screen.</p>
+
+    <h3>5.3 In-App Purchases (Google Play Billing)</h3>
+    <p>You can purchase "coffees" (one-time products <code>coffee_1</code>, <code>coffee_3</code>, <code>coffee_5</code>) through Google Play to permanently remove all ads. Purchases are processed entirely by Google Play under Google's Privacy Policy. We do not receive or store your credit card or payment information.</p>
+
+    <h3>5.4 HUAWEI Wear Engine (Watch Sync)</h3>
+    <p>If paired with FlexFit Watch, workouts and recorded tuning files are transferred from the watch using HUAWEI Wear Engine via the Huawei Health app. Huawei handles device-to-phone communication under its own terms and privacy policy: <a href="https://consumer.huawei.com/en/privacy/privacy-policy/" target="_blank" rel="noopener">consumer.huawei.com/en/privacy/privacy-policy</a>.</p>
+
+    <h3>5.5 Support & voluntary communication</h3>
+    <p>If you email us (e.g., for support or sending recorded set CSV files), we receive only what you choose to send. We use it solely to respond to your request or tune rep-counting algorithms, and delete it upon request.</p>
+
+    <h2>6. Legal basis (EEA, UK, UU PDP, CCPA)</h2>
+    <p>Where required by law, processing is based on:</p>
+    <ul>
+      <li><strong>Performance of a contract</strong> — delivering the app features, route rendering, workout tracking, and backup functionality;</li>
+      <li><strong>Consent</strong> — for ad personalization settings managed via Google UMP and for optional email support communications;</li>
+      <li><strong>Legitimate interest</strong> — maintaining app security, preventing ad fraud, and serving non-personalized advertising.</li>
+    </ul>
+
+    <h2>7. Data retention and deletion</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Kept until</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Workouts & activity files</td>
+            <td>Stored locally until you tick and delete them in the App.</td>
+          </tr>
+          <tr>
+            <td>Monthly boards & settings</td>
+            <td>Kept in local app storage until cleared or until the App is uninstalled.</td>
+          </tr>
+          <tr>
+            <td>Exported videos & cards</td>
+            <td>Saved to <code>Pictures/FlexFit</code> or <code>Download/FlexFit/recordings/</code> until deleted by you.</td>
+          </tr>
+          <tr>
+            <td>Support emails</td>
+            <td>Deleted after your inquiry is resolved (within 12 months maximum).</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>To delete all data:</strong> Uninstall FlexFit from your Android device to automatically erase all internal app storage and settings.</p>
+
+    <h2>8. Security</h2>
+    <p>The App stores its databases, workouts, and boards within its own private storage sandbox on Android. No workout data is uploaded to remote servers managed by us. We recommend securing your phone with a screen lock or PIN.</p>
+
+    <h2>9. Your rights</h2>
+    <p>You have full control over your data (access, export via Zip backup, correction, and deletion). For complete information on how to exercise your rights under GDPR, UU PDP, CCPA, and LGPD, visit our <a href="data_subject_rights.html">Data Subject Rights</a> page.</p>
+
+    <h2>10. Children's privacy</h2>
+    <p>The App is not directed at children under 13 (or under 16/18 depending on local laws). We do not knowingly collect personal data from children. If you believe a child has provided us with information, please contact us for prompt deletion.</p>
+
+    <h2>11. International users</h2>
+    <p>Your workout logs and imported files remain on your device. Third-party services such as Google (AdMob, Play Store) and OpenFreeMap process service requests under their respective global privacy policies.</p>
+
+    <h2>12. Not a medical device</h2>
+    <p>Workout stats, muscle heatmaps, and effort guesses are for informational and logging purposes only and do not constitute medical advice.</p>
+
+    <h2>13. Changes to this Privacy Policy</h2>
+    <p>We may update this Privacy Policy from time to time. The "Last updated" date above indicates when changes take effect. Material changes will be noted in release updates on Google Play.</p>
+
+    <h2>14. Contact us</h2>
+    <p>For questions or requests concerning this Privacy Policy, contact us:</p>
+    <ul>
+      <li>Email: <a href="mailto:secretbaseprimary@gmail.com?subject=FlexFit%20Mobile%20privacy">secretbaseprimary@gmail.com</a></li>
+    </ul>
+
+    <div class="footer">
+      <p>© 2026 FlexFit. All rights reserved.</p>
+      <p style="margin-top: 8px;"><a href="mobile_privacy_policy.html">Privacy Policy</a> · <a href="data_subject_rights.html">Data Subject Rights</a></p>
+    </div>
+  </main>
+</body>
+
+</html>
